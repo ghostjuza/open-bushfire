@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15702" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15702"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="PanelController">
+            <connections>
+                <outlet property="TfDataCountSize" destination="AMe-NO-5sx" id="H73-Sr-fQR"/>
+                <outlet property="a_backgroundView" destination="6" id="152"/>
+                <outlet property="a_btnBurnNow" destination="lEq-uk-aZw" id="KTT-gi-cL1"/>
+                <outlet property="a_btnCleanActive" destination="118" id="151"/>
+                <outlet property="a_btnCleanSecureActive" destination="5cQ-UA-fKA" id="IQu-Fu-kNo"/>
+                <outlet property="a_btnSettings" destination="87" id="150"/>
+                <outlet property="a_btnSettingsAbout" destination="130" id="149"/>
+                <outlet property="a_btnSettingsQuit" destination="126" id="148"/>
+                <outlet property="a_btnUpdateCheck" destination="153" id="156"/>
+                <outlet property="a_chkStartup" destination="124" id="147"/>
+                <outlet property="a_containerView" destination="204" id="206"/>
+                <outlet property="a_settingsView" destination="123" id="146"/>
+                <outlet property="window" destination="5" id="7"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="none" id="5" customClass="Panel">
+            <windowStyleMask key="styleMask" utility="YES" nonactivatingPanel="YES"/>
+            <windowCollectionBehavior key="collectionBehavior" canJoinAllSpaces="YES" ignoresCycle="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="162" y="101" width="305" height="300"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
+            <view key="contentView" wantsLayer="YES" alphaValue="0.94999999999999996" id="6" customClass="BackgroundView">
+                <rect key="frame" x="0.0" y="0.0" width="305" height="300"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <button hidden="YES" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="124">
+                        <rect key="frame" x="12" y="261" width="215" height="18"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <buttonCell key="cell" type="bevel" title="Check" bezelStyle="regularSquare" image="ckbx_default" imagePosition="left" alignment="left" state="on" inset="2" id="125" customClass="CheckboxCell">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                            <connections>
+                                <action selector="actionToggleLoginItems:" target="-2" id="144"/>
+                            </connections>
+                        </buttonCell>
+                    </button>
+                    <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="118">
+                        <rect key="frame" x="12" y="261" width="88" height="18"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <buttonCell key="cell" type="bevel" title="sweep" bezelStyle="regularSquare" image="ckbx_default" imagePosition="left" alignment="left" state="on" inset="2" id="119" customClass="CheckboxCell">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="cellTitle"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="actionCleanActive:" target="-2" id="137"/>
+                        </connections>
+                    </button>
+                    <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="87">
+                        <rect key="frame" x="269" y="263" width="32" height="32"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <buttonCell key="cell" type="bevel" bezelStyle="rounded" image="btn_settings" imagePosition="below" alignment="center" alternateImage="btn_settings_pressed" imageScaling="proportionallyDown" inset="2" id="88">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="actionSettings:" target="-2" id="97"/>
+                        </connections>
+                    </button>
+                    <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="lEq-uk-aZw" userLabel="Btn Burn Now">
+                        <rect key="frame" x="237" y="263" width="32" height="32"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <buttonCell key="cell" type="bevel" bezelStyle="rounded" image="btn_burn_now" imagePosition="below" alignment="center" alternateImage="btn_burn_now_pressed" imageScaling="proportionallyDown" inset="2" id="jD6-71-njN">
+                            <behavior key="behavior" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="actionBurnNow:" target="-2" id="odb-6B-mQU"/>
+                        </connections>
+                    </button>
+                    <customView hidden="YES" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="123" propertyAccessControl="all">
+                        <rect key="frame" x="1" y="105" width="303" height="151"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <subviews>
+                            <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5cQ-UA-fKA" userLabel="Abtn Clean Secure Active">
+                                <rect key="frame" x="11" y="124" width="280" height="18"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="bevel" title="secure_clean" bezelStyle="regularSquare" image="ckbx_default" imagePosition="left" alignment="left" state="on" inset="2" id="2jG-sX-phf" customClass="SettingCheckboxCell">
+                                    <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                    <font key="font" metaFont="cellTitle"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="actionCleanSecureActive:" target="-2" id="HoH-1R-c0q"/>
+                                </connections>
+                            </button>
+                            <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="153">
+                                <rect key="frame" x="64" y="82" width="175" height="20"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="bevel" title="Button" bezelStyle="regularSquare" image="btn_ok_default" imagePosition="overlaps" alignment="center" alternateImage="btn_ok_default_pressed" imageScaling="axesIndependently" inset="2" id="154">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="smallSystem"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="actionUpdateCheck:" target="-2" id="157"/>
+                                </connections>
+                            </button>
+                            <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="126">
+                                <rect key="frame" x="64" y="54" width="175" height="20"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="bevel" title="Button" bezelStyle="regularSquare" image="btn_ok_default" imagePosition="overlaps" alignment="center" alternateImage="btn_ok_default_pressed" imageScaling="axesIndependently" inset="2" id="129">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="smallSystem"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="actionSettingsQuit:" target="-2" id="142"/>
+                                </connections>
+                            </button>
+                            <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="130">
+                                <rect key="frame" x="64" y="1" width="175" height="20"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="bevel" title="Button" bezelStyle="regularSquare" image="btn_ok_default" imagePosition="overlaps" alignment="center" alternateImage="btn_ok_default_pressed" imageScaling="axesIndependently" inset="2" id="133">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="smallSystem"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="actionSettingsAbout:" target="-2" id="141"/>
+                                </connections>
+                            </button>
+                        </subviews>
+                    </customView>
+                    <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="204">
+                        <rect key="frame" x="0.0" y="9" width="305" height="255"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" heightSizable="YES"/>
+                        <subviews>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="205" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="191" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="232" customClass="LineView">
+                                <rect key="frame" x="1" y="190" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="218" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="158" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="233" customClass="LineView">
+                                <rect key="frame" x="1" y="157" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="219" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="126" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="234" customClass="LineView">
+                                <rect key="frame" x="1" y="125" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="220" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="94" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="235" customClass="LineView">
+                                <rect key="frame" x="1" y="93" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="221" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="62" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="236" customClass="LineView">
+                                <rect key="frame" x="1" y="61" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="222" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="30" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="237" customClass="LineView">
+                                <rect key="frame" x="1" y="29" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="223" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="-2" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="238" customClass="LineView">
+                                <rect key="frame" x="1" y="-3" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ouC-r2-dfW" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="-34" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8oZ-2c-aqQ" customClass="LineView">
+                                <rect key="frame" x="1" y="-35" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Sn4-Fy-fpm" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="-66" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="C4V-Vx-Ws1" customClass="LineView">
+                                <rect key="frame" x="1" y="-67" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                        </subviews>
+                    </customView>
+                    <textField autoresizesSubviews="NO" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="AMe-NO-5sx" userLabel="Tf DataCountSize" propertyAccessControl="none">
+                        <rect key="frame" x="3" y="223" width="298" height="25"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <textFieldCell key="cell" controlSize="mini" allowsUndo="NO" sendsActionOnEndEditing="YES" alignment="center" title="@data_count_size" usesSingleLineMode="YES" id="p7N-9p-bhF">
+                            <font key="font" metaFont="systemLight" size="11"/>
+                            <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                </subviews>
+            </view>
+            <connections>
+                <outlet property="delegate" destination="-2" id="8"/>
+            </connections>
+            <point key="canvasLocation" x="140" y="154"/>
+        </window>
+        <userDefaultsController representsSharedInstance="YES" id="89"/>
+    </objects>
+    <resources>
+        <image name="btn_burn_now" width="20" height="20"/>
+        <image name="btn_burn_now_pressed" width="20" height="20"/>
+        <image name="btn_ok_default" width="175" height="20"/>
+        <image name="btn_ok_default_pressed" width="175" height="20"/>
+        <image name="btn_settings" width="20" height="20"/>
+        <image name="btn_settings_pressed" width="20" height="20"/>
+        <image name="ckbx_default" width="14" height="15"/>
+    </resources>
+</document>
