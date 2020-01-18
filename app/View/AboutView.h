@@ -1,0 +1,3 @@
+
+@interface AboutView : NSView
+@end
