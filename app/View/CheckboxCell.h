@@ -1,0 +1,2 @@
+@interface CheckboxCell : NSButtonCell
+@end
