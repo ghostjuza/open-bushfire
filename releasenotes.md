@@ -1,11 +1,17 @@
-Release Notes
+# Release Notes
 ---
 
-#### 2020.21 (2020-01-18)
+#### Build 2020.121 (2020-01-22)
+`change` #4: Rename Bundle Identifier.
+`new` Check system integrity protection and show a warning, if it is enabled.
+`improved` Cleanup rules.
+`fix` Code signing.
+
+#### Build 2020.21 (2020-01-18)
 `notice` Launch Open Bushfire App.
 
-#### 2019.12 (2019-12-27)
+#### Build 2019.12 (2019-12-27)
 `fix` App crash on macOS High Sierra and Mojave.
 
-#### 2019.0 (2019-05-01)
+#### Build 2019.0 (2019-05-01)
 `notice` Bushfire.app now an Open-Source App under GNU General Public License v3.0.  
