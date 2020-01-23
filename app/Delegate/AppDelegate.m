@@ -10,6 +10,7 @@ void *kContextActivePanel = &kContextActivePanel;
 @property (nonatomic, retain) SweeperManager *a_sweeperManager;
 @property (nonatomic, retain) MenubarController *a_menubarController;
 @property (nonatomic, retain, readonly) PanelController *a_panelController;
+@property (nonatomic, retain) Settings *a_settings;
 
 - (IBAction)togglePanel:(id)sender;
 - (void)m_safariTerminated:(NSNotification *)note;
@@ -23,6 +24,7 @@ void *kContextActivePanel = &kContextActivePanel;
 @synthesize a_sweeperManager = _a_sweeperManager;
 @synthesize a_menubarController = _a_menubarController;
 @synthesize a_panelController = _a_panelController;
+@synthesize a_settings = _a_settings;
 
 static MenubarController *m_staticMenubarController;
 
@@ -41,6 +43,7 @@ static MenubarController *m_staticMenubarController;
     [_a_menubarController release];
     [_a_panelController removeObserver:self forKeyPath:@"hasActivePanel"];
     [_a_panelController release];
+    [_a_settings release];
     [super dealloc];
 }
 
@@ -83,9 +86,14 @@ static MenubarController *m_staticMenubarController;
         [[[SUUpdater alloc] init] checkForUpdatesInBackground];
     }
     
-    if ([self checkSIPforAppIdentifier:@"com.apple.Terminal"]) {
-        [self checkSystemIntegrityProtection];
+    self.a_settings = [Settings settingsFromDefaults];
+    
+    if ([self checkSystemIntegrityProtection]) {
+        [self checkFullDiskAccess];
     }
+//    else if ([self checkSIPforAppIdentifier:@"com.apple.Terminal"]) {
+//        [self checkSystemIntegrityProtection];
+//    }
     
     // Install icon into the menu bar
     [self.a_menubarController = [[MenubarController alloc] init] release];
@@ -100,7 +108,7 @@ static MenubarController *m_staticMenubarController;
 
 // Prototype Code !!!!
 //
-- (void) checkSystemIntegrityProtection
+- (BOOL) checkSystemIntegrityProtection
 {
 //    NSDictionary *options = @{(id)kAXTrustedCheckOptionPrompt: @YES};
 //    BOOL accessibilityEnabled = AXIsProcessTrustedWithOptions((CFDictionaryRef)options);
@@ -108,13 +116,51 @@ static MenubarController *m_staticMenubarController;
 //    if (!accessibilityEnabled) {
 //        return;
 //    }
-
-    NSString *sipStatus = [Helper runCommand:@"csrutil status"];
-    NSLog(@"SIP status < %@>", sipStatus);
     
-    if ([sipStatus rangeOfString:@"enabled"].location != NSNotFound) {
-        [self alertSystemIntegrityProtection];
+    NSString *logMsg = @"SystemIntegrityProtection status: %@.";
+
+    if (@available(macOS 10.14, *)) {
+        
+        NSString *sipStatus = [Helper runCommand:@"csrutil status"];
+        
+        if ([sipStatus rangeOfString:@"disabled"].location == NSNotFound) {
+            if (!self.a_settings.SipEnabledConfirmed) {
+                [self alertSystemIntegrityProtection];
+                NSLog(logMsg, @"<enabled>");
+            }
+            else {
+                NSLog(logMsg, @"<enabled>,<confirmed>");
+            }
+            return true;
+        }
+        
+        NSLog(logMsg, @"<disabled>");
+        return false;
     }
+    
+    NSLog(logMsg, @"<not_necessary>");
+    return true;
+}
+
+
+- (BOOL) checkFullDiskAccess
+{
+    NSString *logMsg = @"FullDiskAccess status: %@.";
+    
+    if (@available(macOS 10.14, *)) {
+        NSString *cmdResult = [Helper runCommand:@"sqlite3 /Library/Application\\ Support/com.apple.TCC/TCC.db '.tables'"];
+        if ([cmdResult length] == 0) {
+            NSLog(logMsg, @"<failed>");
+            [self alertDiskFullAccess];
+            return false;
+        }
+        NSLog(logMsg, @"<successful>");
+    }
+    else {
+        NSLog(logMsg, @"<not_necessary>");
+    }
+    
+    return true;
 }
 
 
@@ -173,9 +219,29 @@ static MenubarController *m_staticMenubarController;
     [alert setAlertStyle:NSWarningAlertStyle];
     
     [alert addButtonWithTitle:NSLocalizedString(@"roger_that", nil)];
+    [alert addButtonWithTitle:NSLocalizedString(@"dont_show_again", nil)];
     
     [alert setMessageText:NSLocalizedString(@"alert_sip", nil)];
     [alert setInformativeText:NSLocalizedString(@"alert_sip_long", nil)];
+    
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
+    
+    if ([alert runModal] == NSAlertSecondButtonReturn) {
+        self.a_settings.SipEnabledConfirmed = YES;
+        [self.a_settings saveSettings];
+    }
+}
+
+
+- (void) alertDiskFullAccess
+{
+    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+    [alert setAlertStyle:NSWarningAlertStyle];
+    
+    [alert addButtonWithTitle:NSLocalizedString(@"ok", nil)];
+    
+    [alert setMessageText:NSLocalizedString(@"alert_fda", nil)];
+    [alert setInformativeText:NSLocalizedString(@"alert_fda_long", nil)];
     
     [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
     [alert runModal];

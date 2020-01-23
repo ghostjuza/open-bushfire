@@ -16,6 +16,7 @@
 @property BOOL CleanReadingList;
 @property BOOL CleanRemoteNotifications;
 @property BOOL CleanWebPageIcons;
+@property BOOL SipEnabledConfirmed;
 
 + (id)settingsFromDefaults;
 - (void)saveSettings;
