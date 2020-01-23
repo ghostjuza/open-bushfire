@@ -42,3 +42,6 @@
 "alert_sip"                 = "Der Systemintegritätsschutz ist aktiv!";
 "alert_sip_long"            = "Dadurch könnte die Funktionsfähigkeit von Bushfire beeinträchtigt sein.";
 "roger_that"                = "Verstanden";
+"dont_show_again"           = "Nicht mehr anzeigen";
+"alert_fda"                 = "Der Zugriff auf einige Safari-Daten wurde verweigert!";
+"alert_fda_long"            = "Bitte füge Bushfire zur App-Liste hinzu:\nSystemeinstellungen > Sicherheit > Datenschutz > Festplattenvollzugriff.";

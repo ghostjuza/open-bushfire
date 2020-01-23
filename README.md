@@ -5,9 +5,11 @@
 ## Status
 
 The app is pretty stable.  
-Currently it runs up to macOS Mojave.
+Currently it runs up to macOS Catalina.
 
 ## Quick Links
+
+[Releasenotes:](https://github.com/ghostjuza/open-bushfire/blob/master/releasenotes.md)  
 
 Website: [bushfire-app.com](https://www.bushfire-app.com), [bushfire-app.de](https://www.bushfire-app.de)  
 Twitter: [bushfireapp](https://twitter.com/bushfireapp)  
@@ -24,11 +26,12 @@ Here's a [list of issues](https://github.com/ghostjuza/open-bushfire/issues) whe
 * write good code
 * test your code
 * refactoring welcome
+* please don't change `Version` and `Build` fields. They are will be set automaticly!<br/><br/>![screenshot](img/dont-change-version-and-build-info.png)
 
 ## Compile the App
 
 * you need Apple's Xcode `;)`
-* config your app signing<br/><br/><img src="img/code-signing.png" width="700"/>
+* config your app signing right<br/><br/><img src="img/code-signing.png" width="700"/>
 
 ## Donations
 

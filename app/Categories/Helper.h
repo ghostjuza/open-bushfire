@@ -27,7 +27,12 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)moveFinderObject:(NSString*)fromSource to:(NSString*)destination asTerminalCommand:(bool)asTerminalCommand;
 + (void)detectDataCountAndSize:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize;
 + (NSImage*)flippImage:(NSImage*)image withFrame:(NSRect)destRect;
-
++ (void) detectDataCountAndSize:(NSArray*)spyList
+    objectCountCurrent:(nullable NSUInteger*)objectCountCurrent
+    objectSizeCurrent:(nullable unsigned long long*)objectSizeCurrent
+    objectCountTotal:(nullable NSUInteger*)objectCountTotal
+    objectSizeTotal:(nullable unsigned long long*)objectSizeTotal
+;
 @end
 
 NS_ASSUME_NONNULL_END
