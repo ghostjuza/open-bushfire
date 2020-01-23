@@ -10,6 +10,7 @@ void *kContextActivePanel = &kContextActivePanel;
 @property (nonatomic, retain) SweeperManager *a_sweeperManager;
 @property (nonatomic, retain) MenubarController *a_menubarController;
 @property (nonatomic, retain, readonly) PanelController *a_panelController;
+@property (nonatomic, retain) Settings *a_settings;
 
 - (IBAction)togglePanel:(id)sender;
 - (void)m_safariTerminated:(NSNotification *)note;
@@ -23,6 +24,7 @@ void *kContextActivePanel = &kContextActivePanel;
 @synthesize a_sweeperManager = _a_sweeperManager;
 @synthesize a_menubarController = _a_menubarController;
 @synthesize a_panelController = _a_panelController;
+@synthesize a_settings = _a_settings;
 
 static MenubarController *m_staticMenubarController;
 
@@ -41,6 +43,7 @@ static MenubarController *m_staticMenubarController;
     [_a_menubarController release];
     [_a_panelController removeObserver:self forKeyPath:@"hasActivePanel"];
     [_a_panelController release];
+    [_a_settings release];
     [super dealloc];
 }
 
@@ -83,6 +86,15 @@ static MenubarController *m_staticMenubarController;
         [[[SUUpdater alloc] init] checkForUpdatesInBackground];
     }
     
+    self.a_settings = [Settings settingsFromDefaults];
+    
+    if ([self checkSystemIntegrityProtection]) {
+        [self checkFullDiskAccess];
+    }
+//    else if ([self checkSIPforAppIdentifier:@"com.apple.Terminal"]) {
+//        [self checkSystemIntegrityProtection];
+//    }
+    
     // Install icon into the menu bar
     [self.a_menubarController = [[MenubarController alloc] init] release];
     m_staticMenubarController = self.a_menubarController;
@@ -91,6 +103,148 @@ static MenubarController *m_staticMenubarController;
 
     NSNotificationCenter *center = [[NSWorkspace sharedWorkspace] notificationCenter];
     [center addObserver:self selector:@selector(m_safariTerminated:) name:NSWorkspaceDidTerminateApplicationNotification object:nil];
+}
+
+
+// Prototype Code !!!!
+//
+- (BOOL) checkSystemIntegrityProtection
+{
+//    NSDictionary *options = @{(id)kAXTrustedCheckOptionPrompt: @YES};
+//    BOOL accessibilityEnabled = AXIsProcessTrustedWithOptions((CFDictionaryRef)options);
+//
+//    if (!accessibilityEnabled) {
+//        return;
+//    }
+    
+    NSString *logMsg = @"SystemIntegrityProtection status: %@.";
+
+    if (@available(macOS 10.14, *)) {
+        
+        NSString *sipStatus = [Helper runCommand:@"csrutil status"];
+        
+        if ([sipStatus rangeOfString:@"disabled"].location == NSNotFound) {
+            if (!self.a_settings.SipEnabledConfirmed) {
+                [self alertSystemIntegrityProtection];
+                NSLog(logMsg, @"<enabled>");
+            }
+            else {
+                NSLog(logMsg, @"<enabled>,<confirmed>");
+            }
+            return true;
+        }
+        
+        NSLog(logMsg, @"<disabled>");
+        return false;
+    }
+    
+    NSLog(logMsg, @"<not_necessary>");
+    return true;
+}
+
+
+- (BOOL) checkFullDiskAccess
+{
+    NSString *logMsg = @"FullDiskAccess status: %@.";
+    
+    if (@available(macOS 10.14, *)) {
+        NSString *cmdResult = [Helper runCommand:@"sqlite3 /Library/Application\\ Support/com.apple.TCC/TCC.db '.tables'"];
+        if ([cmdResult length] == 0) {
+            NSLog(logMsg, @"<failed>");
+            [self alertDiskFullAccess];
+            return false;
+        }
+        NSLog(logMsg, @"<successful>");
+    }
+    else {
+        NSLog(logMsg, @"<not_necessary>");
+    }
+    
+    return true;
+}
+
+
+- (BOOL)checkSIPforAppIdentifier:(NSString*)identifier {
+
+    // First available from 10.14 Mojave
+    if (@available(macOS 10.14, *)) {
+        
+//        int c = open("/Library/Application Support/com.apple.TCC/TCC.db", O_RDONLY);
+//        if (c == -1 && (errno == EPERM || errno == EACCES)) {
+//            // no full disk access
+//            return NO;
+//        }
+
+        OSStatus status;
+        NSAppleEventDescriptor *targetAppEventDescriptor;
+
+        targetAppEventDescriptor = [NSAppleEventDescriptor descriptorWithBundleIdentifier:identifier];
+        status = AEDeterminePermissionToAutomateTarget(targetAppEventDescriptor.aeDesc, typeWildCard, typeWildCard, true);
+
+        switch (status) {
+            case -600: //procNotFound
+                NSLog(@"Not running app with id '%@'", identifier);
+                break;
+
+            case 0: // noErr
+                NSLog(@"SIP check successfull for app with id '%@'", identifier);
+                break;
+
+            case -1744: // errAEEventWouldRequireUserConsent
+                // This only appears if you send false for askUserIfNeeded
+                NSLog(@"User consent required for app with id '%@'", identifier);
+                break;
+
+            case -1743: //errAEEventNotPermitted
+                NSLog(@"User didn't allow usage for app with id '%@'", identifier);
+
+                // Here you should present a dialog with a tutorial on how to activate it manually
+                // This can be something like
+                // Go to system preferences > security > privacy
+                // Choose automation and active [APPNAME] for [APPNAME]
+
+                return NO;
+
+            default:
+                break;
+        }
+    }
+    return YES;
+}
+
+
+- (void) alertSystemIntegrityProtection
+{
+    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+    [alert setAlertStyle:NSWarningAlertStyle];
+    
+    [alert addButtonWithTitle:NSLocalizedString(@"roger_that", nil)];
+    [alert addButtonWithTitle:NSLocalizedString(@"dont_show_again", nil)];
+    
+    [alert setMessageText:NSLocalizedString(@"alert_sip", nil)];
+    [alert setInformativeText:NSLocalizedString(@"alert_sip_long", nil)];
+    
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
+    
+    if ([alert runModal] == NSAlertSecondButtonReturn) {
+        self.a_settings.SipEnabledConfirmed = YES;
+        [self.a_settings saveSettings];
+    }
+}
+
+
+- (void) alertDiskFullAccess
+{
+    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+    [alert setAlertStyle:NSWarningAlertStyle];
+    
+    [alert addButtonWithTitle:NSLocalizedString(@"ok", nil)];
+    
+    [alert setMessageText:NSLocalizedString(@"alert_fda", nil)];
+    [alert setInformativeText:NSLocalizedString(@"alert_fda_long", nil)];
+    
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
+    [alert runModal];
 }
 
 

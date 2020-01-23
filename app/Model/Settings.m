@@ -6,6 +6,7 @@
 
 @synthesize CleanSecureActive  = _CleanSecureActive;
 @synthesize CleanActive        = _CleanActive;
+
 @synthesize CleanCookies       = _CleanCookies;
 @synthesize CleanZombieCookies = _CleanZombieCookies;
 @synthesize CleanCache         = _CleanCache;
@@ -22,17 +23,19 @@
 @synthesize CleanOfflineData         = _CleanOfflineData;
 @synthesize CleanMailDownloads = _CleanMailDownloads;
 
+@synthesize SipEnabledConfirmed = _SipEnabledConfirmed;
+
 
 + (id)settingsFromDefaults
 {
     Settings *settings = nil;
-    NSData   *data     = [[NSUserDefaults standardUserDefaults] objectForKey:SAFARI_SWEEPER_USER_SETTINGS];
+    NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:SAFARI_SWEEPER_USER_SETTINGS];
     
-    if ( data != nil ) {
+    if (data != nil) {
         settings = (Settings *)[NSKeyedUnarchiver unarchiveObjectWithData:data];
     }
     
-    if ( settings == nil )
+    if (settings == nil)
     {
         settings = [[[Settings alloc] init] autorelease];
 
@@ -49,6 +52,8 @@
         settings.CleanPreview       = YES;
         settings.CleanTopSites      = YES;
         settings.CleanWebPageIcons  = YES;
+        
+        settings.SipEnabledConfirmed = NO;
 
         // Currently unused !!!
         //
@@ -93,6 +98,8 @@
     [encoder encodeBool:self.CleanPreview forKey:@"cleanPreview"];
     [encoder encodeBool:self.CleanTopSites forKey:@"cleanTopSites"];
     [encoder encodeBool:self.CleanWebPageIcons forKey:@"cleanWebPageIcons"];
+    
+    [encoder encodeBool:self.SipEnabledConfirmed forKey:@"confirmedSipEnabled"];
 
 //    [encoder encodeBool:self.CleanReadingList forKey:@"cleanReadingList"];
 //    [encoder encodeBool:self.CleanRemoteNotifications forKey:@"cleanRemoteNotifications"];
@@ -122,6 +129,8 @@
         self.CleanPreview       = [decoder decodeBoolForKey:@"cleanPreview"];
         self.CleanTopSites      = [decoder decodeBoolForKey:@"cleanTopSites"];
         self.CleanWebPageIcons  = [decoder decodeBoolForKey:@"cleanWebPageIcons"];
+        
+        self.SipEnabledConfirmed  = [decoder decodeBoolForKey:@"confirmedSipEnabled"];
 
 //        self.CleanReadingList         = [decoder decodeBoolForKey:@"cleanReadingList"];
 //        self.CleanRemoteNotifications = [decoder decodeBoolForKey:@"cleanRemoteNotifications"];

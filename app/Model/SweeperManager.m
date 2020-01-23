@@ -342,6 +342,7 @@ static NSInteger      osVersion   = 0;
         // macOS > 1014
         // Remove complete cache folder from container
         //
+        @"Library/Containers/com.apple.Safari/Data/Library/Caches/com.apple.Safari",
         @"Library/Containers/com.apple.Safari/Data/Library/Caches",
         @"Library/Containers/com.apple.Safari.CacheDeleteExtension/Data/Library/Caches",
 

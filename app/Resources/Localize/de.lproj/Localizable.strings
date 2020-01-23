@@ -39,3 +39,9 @@
 "error_no_connection_long"  = "Es besteht keine Verbindung zum Internet.";
 "action_burn_now"           = "Safari Daten jetzt löschen";
 "action_burn_now_long"      = "Bushfire löscht alle gewählten Safari Daten im laufenden Betrieb, die Anzeige in Safari kann abweichend sein!";
+"alert_sip"                 = "Der Systemintegritätsschutz ist aktiv!";
+"alert_sip_long"            = "Dadurch könnte die Funktionsfähigkeit von Bushfire beeinträchtigt sein.";
+"roger_that"                = "Verstanden";
+"dont_show_again"           = "Nicht mehr anzeigen";
+"alert_fda"                 = "Der Zugriff auf einige Safari-Daten wurde verweigert!";
+"alert_fda_long"            = "Bitte füge Bushfire zur App-Liste hinzu:\nSystemeinstellungen > Sicherheit > Datenschutz > Festplattenvollzugriff.";
