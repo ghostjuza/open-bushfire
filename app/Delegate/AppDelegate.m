@@ -2,6 +2,7 @@
 #import "AppDelegate.h"
 #import "SweeperManager.h"
 #import "Helper.h"
+#import "Curl.h"
 
 void *kContextActivePanel = &kContextActivePanel;
 

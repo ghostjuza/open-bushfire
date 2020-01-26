@@ -9,7 +9,7 @@ Currently it runs up to macOS Catalina.
 
 ## Quick Links
 
-[Releasenotes:](https://github.com/ghostjuza/open-bushfire/blob/master/releasenotes.md)  
+[Release Notes](https://github.com/ghostjuza/open-bushfire/blob/master/releasenotes.md)  
 
 Website: [bushfire-app.com](https://www.bushfire-app.com), [bushfire-app.de](https://www.bushfire-app.de)  
 Twitter: [bushfireapp](https://twitter.com/bushfireapp)  

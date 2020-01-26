@@ -8,6 +8,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSInteger)getOSVersion;
 + (bool)isHiddenClearOptionsPressed;
 + (BOOL)isConnected;
++ (NSString*)getHost;
++ (int) pushCleanUpCounting:(unsigned long long) cleanupSize cleanupCount:(NSUInteger) cleanupCount;
 + (NSFileManager*)getFileManager;
 + (NSDictionary*)dictionaryWithPlist:(NSString*)path;
 + (NSArray*)appendObjectsFromDirectory:(NSString*)source excludePattern:(nullable NSString*)pattern toArrayList:(NSArray*)arrayList;

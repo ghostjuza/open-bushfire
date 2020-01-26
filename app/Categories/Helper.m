@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import "Helper.h"
+#import "Curl.h"
 #import "SweeperManager.h"
 #import "Settings.h"
 #import "Reachability.h"
@@ -133,6 +134,51 @@ static NSFileManager *fileManager = nil;
     }
     
     return objectSizeTotal;
+}
+
+
++ (NSString*) getHost
+{
+    #if LIVE_WWW_HOST == 0
+        return @"http://127.0.0.1:8000/api/";
+    #endif
+    
+    return @"https://www.bushfire.services/api/";
+}
+
+
++ (int) pushCleanUpCounting:(unsigned long long) cleanupSize cleanupCount:(NSUInteger) cleanupCount
+{
+    BOOL isConnectionAvailable = [Helper isConnected];
+    
+    if (!isConnectionAvailable) {
+        return 503; // Service Unavailable
+    }
+    
+    NSString *netIp = [Curl call:[
+        NSString stringWithFormat:@"%@caller/ip.php?id=%@",
+        [Helper getHost],
+        @"cd8af1b16129c5cc4dfa0c873d276814"
+    ] withMethod:@"GET" withBody:NULL];
+    
+    if ([netIp length] == 0) {
+        return 400; // Bad request
+    }
+    
+    NSString *urlParam = [NSString stringWithFormat:@"size=%lu&count=%lu&caller=%@&id=%@",
+        (unsigned long) cleanupSize,
+        (unsigned long) cleanupCount,
+        [[netIp dataUsingEncoding:NSUTF8StringEncoding] base64EncodedStringWithOptions:0],
+        @"6ee589d4988fc5c3a154dc88c60bf721"
+    ];
+    NSString *url = [NSString stringWithFormat:@"%@caller/cleanup/counting.php?%@", [Helper getHost], urlParam];
+    NSString *response = [Curl call:url withMethod:@"PUT" withBody:NULL];
+    
+    if ([response isEqualToString:@"200"]) {
+        return 200; // Successful
+    }
+    
+    return 400; // Bad request
 }
 
 
@@ -294,7 +340,8 @@ static NSFileManager *fileManager = nil;
     bool isUnloaded = false;
     bool returnValue = false;
     
-    if ( [Helper getOSVersion] >= 101200 ) {
+    //if ( [Helper getOSVersion] >= 101200 ) {
+    if (@available(macOS 10.12, *)) {
         #if DEBUG == 1
                 NSLog(@"[DBG] %@", @"unload via kill ...");
         #endif
