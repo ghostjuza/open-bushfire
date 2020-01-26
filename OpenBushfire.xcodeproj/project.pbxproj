@@ -46,6 +46,8 @@
 		32F472B7165A5F9A0008EE9A /* btn_ok_default_pressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 2CFD3ABC158DED72004C1AA9 /* btn_ok_default_pressed.png */; };
 		32F472BB165A5F9A0008EE9A /* btn_close_about.png in Resources */ = {isa = PBXBuildFile; fileRef = E1BF0435159BA119004EE3F7 /* btn_close_about.png */; };
 		32F472BC165A5F9A0008EE9A /* btn_close_about_pressed.png in Resources */ = {isa = PBXBuildFile; fileRef = E1BF0436159BA119004EE3F7 /* btn_close_about_pressed.png */; };
+		E1248AA723DCC19C00C3C79A /* Curl.h in Sources */ = {isa = PBXBuildFile; fileRef = E1248AA623DCC19C00C3C79A /* Curl.h */; };
+		E1248AA923DCC20900C3C79A /* Curl.m in Sources */ = {isa = PBXBuildFile; fileRef = E1248AA823DCC20900C3C79A /* Curl.m */; };
 		E14CA1811CA17A8100E49EB1 /* dsa_pub_bf.pem in Resources */ = {isa = PBXBuildFile; fileRef = E14CA1801CA17A8100E49EB1 /* dsa_pub_bf.pem */; };
 		E15F259222764F090081BF8A /* paypal-donate-btn.png in Resources */ = {isa = PBXBuildFile; fileRef = E15F259122764F090081BF8A /* paypal-donate-btn.png */; };
 		E15F259522765E010081BF8A /* paypal-donate-btn@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E15F259422765E010081BF8A /* paypal-donate-btn@2x.png */; };
@@ -58,8 +60,6 @@
 		E17CA363227AF27D0011A8F6 /* btn_osi@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E17CA361227AF27D0011A8F6 /* btn_osi@2x.png */; };
 		E17CA9B823D770A600C4567F /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E17CA9B623D770A000C4567F /* Sparkle.framework */; };
 		E17CA9B923D770A600C4567F /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = E17CA9B623D770A000C4567F /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		E185D11E23D48BE600B2737A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = E185D11D23D48BE600B2737A /* README.md */; };
-		E185D12223D4AD5F00B2737A /* img in Resources */ = {isa = PBXBuildFile; fileRef = E185D12123D4AD5F00B2737A /* img */; };
 		E185D12423D4D35700B2737A /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = E185D12323D4D35600B2737A /* LICENSE */; };
 		E18C608C1CF1A70C00D4EA49 /* Helper.m in Sources */ = {isa = PBXBuildFile; fileRef = E18C608B1CF1A70C00D4EA49 /* Helper.m */; };
 		E1D710EB1CEB9194000626FC /* ico_menubar_invert@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E1D710E91CEB9194000626FC /* ico_menubar_invert@2x.png */; };
@@ -168,6 +168,8 @@
 		32CA013C1715D9B800D39869 /* SettingCheckboxCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SettingCheckboxCell.h; sourceTree = "<group>"; };
 		32CA013D1715D9B800D39869 /* SettingCheckboxCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SettingCheckboxCell.m; sourceTree = "<group>"; };
 		32F472D1165A5F9A0008EE9A /* Bushfire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bushfire.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1248AA623DCC19C00C3C79A /* Curl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Curl.h; path = Controller/Curl.h; sourceTree = "<group>"; };
+		E1248AA823DCC20900C3C79A /* Curl.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Curl.m; sourceTree = "<group>"; };
 		E14CA1801CA17A8100E49EB1 /* dsa_pub_bf.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub_bf.pem; sourceTree = "<group>"; };
 		E14F401E22772E8700081BFA /* releasenotes.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = releasenotes.md; sourceTree = "<group>"; };
 		E15F259122764F090081BF8A /* paypal-donate-btn.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "paypal-donate-btn.png"; sourceTree = "<group>"; };
@@ -236,6 +238,8 @@
 		2CA68A84158D068400D16086 /* Categories */ = {
 			isa = PBXGroup;
 			children = (
+				E1248AA623DCC19C00C3C79A /* Curl.h */,
+				E1248AA823DCC20900C3C79A /* Curl.m */,
 				2CA68A85158D069D00D16086 /* NSButton+TextColor.h */,
 				2CA68A86158D069D00D16086 /* NSButton+TextColor.m */,
 				E18C608D1CF1A72B00D4EA49 /* Helper.h */,
@@ -556,7 +560,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E185D12223D4AD5F00B2737A /* img in Resources */,
 				32F472A7165A5F9A0008EE9A /* InfoPlist.strings in Resources */,
 				E1EACD8A1EAB8A3600F86450 /* btn_burn_now@2x.png in Resources */,
 				32F472A9165A5F9A0008EE9A /* Localizable.strings in Resources */,
@@ -600,7 +603,6 @@
 				E1EACD891EAB8A3600F86450 /* btn_burn_now.png in Resources */,
 				E15F259522765E010081BF8A /* paypal-donate-btn@2x.png in Resources */,
 				E14CA1811CA17A8100E49EB1 /* dsa_pub_bf.pem in Resources */,
-				E185D11E23D48BE600B2737A /* README.md in Resources */,
 				E1EACD871EAB8A3600F86450 /* btn_burn_now_pressed.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -629,6 +631,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				32F4728D165A5F9A0008EE9A /* main.m in Sources */,
+				E1248AA923DCC20900C3C79A /* Curl.m in Sources */,
 				32F4728E165A5F9A0008EE9A /* AppDelegate.m in Sources */,
 				32F4728F165A5F9A0008EE9A /* SweeperManager.m in Sources */,
 				32F47290165A5F9A0008EE9A /* Panel.m in Sources */,
@@ -647,6 +650,7 @@
 				32F4729B165A5F9A0008EE9A /* AboutView.m in Sources */,
 				326208D8165B78A200DAC62D /* Reachability.m in Sources */,
 				328DD2171714B0D50054E29E /* LineView.m in Sources */,
+				E1248AA723DCC19C00C3C79A /* Curl.h in Sources */,
 				32CA013F1715D9BF00D39869 /* DarkLineView.m in Sources */,
 				32CA01401715D9C300D39869 /* SettingCheckboxCell.m in Sources */,
 			);
@@ -710,6 +714,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DEBUG=1",
+					"LIVE_WWW_HOST=1",
+					"PUSH_CLEANUP_COUNTING=0",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -756,7 +762,11 @@
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"LIVE_WWW_HOST=1",
+					"$(inherited)",
+					"PUSH_CLEANUP_COUNTING=1",
+				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;

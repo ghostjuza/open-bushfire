@@ -468,6 +468,8 @@ static bool ANIMATE = false;
     
     [NSApp activateIgnoringOtherApps:NO];
     
+    //if ((@available(macOS 10.7, *)) && !(@available(macOS 10.10, *))) {
+    //if (!@available(macOS 10.10, *)) {
     if ([Helper getOSVersion] < 101000) {
         [panel setAlphaValue:0];
     }

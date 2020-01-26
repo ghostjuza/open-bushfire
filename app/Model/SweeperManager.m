@@ -12,12 +12,12 @@
 @implementation SweeperManager
 
 static NSFileManager *fileManager = nil;
-static NSInteger      osVersion   = 0;
+//static NSInteger      osVersion   = 0;
 
-- (void) detectOSVersion
-{
-    osVersion = [Helper getOSVersion];
-}
+//- (void) detectOSVersion
+//{
+//    osVersion = [Helper getOSVersion];
+//}
 
 - (void) cleanupWithCompletion
 {
@@ -26,7 +26,7 @@ static NSInteger      osVersion   = 0;
 
 - (void) cleanupWithCompletion:(SweeperManagerBlock)block
 {
-    [self detectOSVersion];
+    //[self detectOSVersion];
 
     Settings *settings = [Settings settingsFromDefaults];
     NSString *bfQue    = [Helper generateUuidString];
@@ -86,10 +86,10 @@ static NSInteger      osVersion   = 0;
                 }
             }
 
-            NSUInteger objectCount        = 0;
+            NSUInteger objectCount = 0;
             unsigned long long objectSize = [Helper spyFolder:quePath objectCount:&objectCount];
-            NSString *queSpyInfo          = [NSString stringWithFormat:@"Objects: %d, Size: %@", (int)objectCount, [Helper formatBytes:objectSize]];
-
+            NSString *queSpyInfo = [NSString stringWithFormat:@"Objects: %d, Size: %@", (int)objectCount, [Helper formatBytes:objectSize]];
+            
             #if DEBUG == 1
 
                 NSLog(@"[DBG] Burn %@ [%@].", bfQue, queSpyInfo);
@@ -103,7 +103,13 @@ static NSInteger      osVersion   = 0;
             // Burn the Q-Folder ...
             //
             [self m_deleteFile:@"/tmp/bfrmque.*" secure:burnSecure];
-
+            
+            #if PUSH_CLEANUP_COUNTING == 1
+            
+                [Helper pushCleanUpCounting:objectSize cleanupCount:objectCount];
+            
+            #endif
+            
             if (block) {
                 block([NSNumber numberWithBool:settings.CleanActive], nil);
             }
@@ -123,8 +129,7 @@ static NSInteger      osVersion   = 0;
 {
     NSString *logMsg = @"";
         
-    @try
-    {
+    @try {
         if (forceKillProc)
         {
             NSString *cmd = @"kill -9 `ps -ax | grep -e '/usr/libexec/Safari\\|com\\.apple\\.Safari|Support/cloudd' | awk '{print $1, $2}' | grep -e ' ??' | awk '{print $1}' | tr '\n' ' '`";
@@ -199,7 +204,8 @@ static NSInteger      osVersion   = 0;
     {
         command = [NSString stringWithFormat:@"srm -rfs %@", path];
         
-        if (osVersion >= 101200) {
+        //if (osVersion >= 101200) {
+        if (@available(macOS 10.12, *)) {
             command = [NSString stringWithFormat:@"rm -rdP %@", path];
         }
     }
@@ -298,7 +304,8 @@ static NSInteger      osVersion   = 0;
 {
     NSString *logMsg = @"";
     
-    if (osVersion >= 101000)
+    //if (osVersion >= 101000)
+    if (@available(macOS 10.10, *))
     {
         #if DEBUG == 1
         
@@ -399,7 +406,9 @@ static NSInteger      osVersion   = 0;
 
 - (void) m_burnCloudHistory
 {
-    if (osVersion >= 101000) {
+    // Happens automatically on macOS 10.10 and beyond
+    //if (osVersion >= 101000) {
+    if (@available(macOS 10.10, *)) {
         [Helper restartLaunchAgent:@"/System/Library/LaunchAgents/com.apple.CallHistorySyncHelper.plist" logMessage:@""];
         [Helper restartLaunchAgent:@"/System/Library/LaunchAgents/com.apple.cloudd.plist" logMessage:@""];
     }
@@ -438,19 +447,16 @@ static NSInteger      osVersion   = 0;
     NSArray *arrayList = [SweeperManager getDownloadsList];
     [self moveToQueByArrayList:arrayList toQuePath:quePath];
     
-    if (osVersion > 100608)
-    {
-        NSString *cmdDeleteFromLaunchService = @"sqlite3 ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV* 'delete from LSQuarantineEvent where LSQuarantineAgentBundleIdentifier = \"com.apple.Safari\"'";
-        NSString *logMsg = @"";
-        
-        #if DEBUG == 1
-        
-            logMsg = @"[DBG] Burn Downlaodlist from hidden DataStorage.";
-        
-        #endif
-        
-        [Helper runTerminalCommand:cmdDeleteFromLaunchService logMessage:logMsg];
-    }
+    NSString *cmdDeleteFromLaunchService = @"sqlite3 ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV* 'delete from LSQuarantineEvent where LSQuarantineAgentBundleIdentifier = \"com.apple.Safari\"'";
+    NSString *logMsg = @"";
+    
+    #if DEBUG == 1
+    
+        logMsg = @"[DBG] Burn Downlaodlist from hidden DataStorage.";
+    
+    #endif
+    
+    [Helper runTerminalCommand:cmdDeleteFromLaunchService logMessage:logMsg];
 }
 
 + (NSArray*) getDownloadsList
