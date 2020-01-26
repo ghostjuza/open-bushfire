@@ -89,7 +89,8 @@
 {
     NSRect frame = [self frame];
     // convertPointToScreen macht stress bei Mountain Lion
-    frame.origin = [self.window convertBaseToScreen:frame.origin];
+    //frame.origin = [self.window convertBaseToScreen:frame.origin];
+    frame.origin = [self.window convertPointToScreen:frame.origin];
     return frame;
 }
 

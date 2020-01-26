@@ -30,6 +30,7 @@
 - (void)drawImage:(NSImage *)image withFrame:(NSRect)frame inView:(NSView *)controlView {
     
     NSImage *checkbox = nil;
+    //NSRect imageRect = [self imageRectForBounds:frame];
     
     if ( [self intValue] ) {
         checkbox = [NSImage imageNamed:@"ckbx_on_default"];
@@ -38,7 +39,9 @@
         checkbox = [NSImage imageNamed:@"ckbx_default"];
     }
     
+    //[checkbox drawInRect:NSMakeRect(0, 0, checkbox.size.width, checkbox.size.height) fromRect:NSZeroRect operation:NSCompositeSourceIn fraction:1.0 respectFlipped:YES hints:nil];
     [checkbox setFlipped:[controlView isFlipped]];
+    
     [checkbox drawInRect:NSMakeRect(0, 0, checkbox.size.width, checkbox.size.height) fromRect:NSZeroRect operation:NSCompositeCopy fraction:1.0];
 }
 
