@@ -104,8 +104,7 @@
 
         NSFileManager *fileManager = [NSFileManager defaultManager];
 
-        do
-        {
+        do {
             #if DEBUG == 1
                 NSLog(@"[DBG] Waiting for %s file: %s %s", mode, (char *)[fromPath UTF8String], (char *)[toPath UTF8String]);
             #endif
