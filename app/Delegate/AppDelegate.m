@@ -78,7 +78,7 @@ static MenubarController *m_staticMenubarController;
     int retVal = system([command cStringUsingEncoding:NSUTF8StringEncoding]);
     
     #if DEBUG == 1
-        NSLog(@"[DBG] Remove quarantine flags [%d].", retVal);
+        NSLog(@"[DBG] Remove quarantine flags <%d>", retVal);
     #endif
     
 #endif
@@ -88,7 +88,7 @@ static MenubarController *m_staticMenubarController;
     }
     
     self.a_settings = [Settings settingsFromDefaults];
-    
+
     if ([self checkSystemIntegrityProtection]) {
         [self checkFullDiskAccess];
     }
@@ -118,7 +118,7 @@ static MenubarController *m_staticMenubarController;
 //        return;
 //    }
     
-    NSString *logMsg = @"SystemIntegrityProtection status: %@.";
+    NSString *logMsg = @"SystemIntegrityProtection status: %@";
 
     if (@available(macOS 10.14, *)) {
         
@@ -130,7 +130,7 @@ static MenubarController *m_staticMenubarController;
                 NSLog(logMsg, @"<enabled>");
             }
             else {
-                NSLog(logMsg, @"<enabled>,<confirmed>");
+                NSLog(logMsg, @"<enabled> <confirmed>");
             }
             return true;
         }
@@ -146,7 +146,7 @@ static MenubarController *m_staticMenubarController;
 
 - (BOOL) checkFullDiskAccess
 {
-    NSString *logMsg = @"FullDiskAccess status: %@.";
+    NSString *logMsg = @"FullDiskAccess status: %@";
     
     if (@available(macOS 10.14, *)) {
         NSString *cmdResult = [Helper runCommand:@"sqlite3 /Library/Application\\ Support/com.apple.TCC/TCC.db '.tables'"];
@@ -184,20 +184,20 @@ static MenubarController *m_staticMenubarController;
 
         switch (status) {
             case -600: //procNotFound
-                NSLog(@"Not running app with id '%@'", identifier);
+                NSLog(@"Not running app with id <%@>", identifier);
                 break;
 
             case 0: // noErr
-                NSLog(@"SIP check successfull for app with id '%@'", identifier);
+                NSLog(@"SIP check successfull for app with id <%@>", identifier);
                 break;
 
             case -1744: // errAEEventWouldRequireUserConsent
                 // This only appears if you send false for askUserIfNeeded
-                NSLog(@"User consent required for app with id '%@'", identifier);
+                NSLog(@"User consent required for app with id <%@>", identifier);
                 break;
 
             case -1743: //errAEEventNotPermitted
-                NSLog(@"User didn't allow usage for app with id '%@'", identifier);
+                NSLog(@"User didn't allow usage for app with id <%@>", identifier);
 
                 // Here you should present a dialog with a tutorial on how to activate it manually
                 // This can be something like
