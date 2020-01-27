@@ -9,7 +9,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (bool)isHiddenClearOptionsPressed;
 + (BOOL)isConnected;
 + (NSString*)getHost;
-+ (int) pushCleanUpCounting:(unsigned long long) cleanupSize cleanupCount:(NSUInteger) cleanupCount;
+
 + (NSFileManager*)getFileManager;
 + (NSDictionary*)dictionaryWithPlist:(NSString*)path;
 + (NSArray*)appendObjectsFromDirectory:(NSString*)source excludePattern:(nullable NSString*)pattern toArrayList:(NSArray*)arrayList;
@@ -27,14 +27,37 @@ NS_ASSUME_NONNULL_BEGIN
 + (bool)runTerminalCommand:(NSString*)command logMessage:(NSString*)message;
 + (void)moveFinderObject:(NSString*)fromSource to:(NSString*)destination;
 + (void)moveFinderObject:(NSString*)fromSource to:(NSString*)destination asTerminalCommand:(bool)asTerminalCommand;
-+ (void)detectDataCountAndSize:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize;
 + (NSImage*)flippImage:(NSImage*)image withFrame:(NSRect)destRect;
-+ (void) detectDataCountAndSize:(NSArray*)spyList
-    objectCountCurrent:(nullable NSUInteger*)objectCountCurrent
-    objectSizeCurrent:(nullable unsigned long long*)objectSizeCurrent
-    objectCountTotal:(nullable NSUInteger*)objectCountTotal
-    objectSizeTotal:(nullable unsigned long long*)objectSizeTotal
-;
++ (int)pushCleanUpCounting:(unsigned long long)cleanupSize cleanupCount:(NSUInteger)cleanupCount;
++ (void)detectDataCountAndSize:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize;
++ (void)detectAndPushCleanUpCounting:(Settings*)settings;
+
+//+ (void) detectDataCountAndSize:(NSArray*)spyList
+//    objectCountCurrent:(nullable NSUInteger*)objectCountCurrent
+//    objectSizeCurrent:(nullable unsigned long long*)objectSizeCurrent
+//    objectCountTotal:(nullable NSUInteger*)objectCountTotal
+//    objectSizeTotal:(nullable unsigned long long*)objectSizeTotal
+//;
+
+
+
+//+ (void) detectDataCountAndSizeForCounting:(Settings*) settings
+//    returnBlock:(void (^)(
+//        NSUInteger returnObjectCountCurrent,
+//        unsigned long long returnObjectSizeCurrent,
+//        NSUInteger returnObjectCountTotal,
+//        unsigned long long returnObjectSizeTotal,
+//        NSUInteger returnObjectCountActive,
+//        unsigned long long returnObjectSizeActive
+//    )) returnBlock;
+//+ (void) detectDataCountAndSizeForCounting:(Settings*) settings
+//returnObjectCountCurrent:(nullable NSUInteger*)returnObjectCountCurrent
+//returnObjectSizeCurrent:(nullable unsigned long long*)returnObjectSizeCurrent
+//returnObjectCountTotal:(nullable NSUInteger*)returnObjectCountTotal
+//returnObjectSizeTotal:(nullable unsigned long long*)returnObjectSizeTotal
+//returnObjectCountActive:(nullable NSUInteger*)returnObjectCountActive
+//                    returnObjectSizeActive:(nullable unsigned long long*)returnObjectSizeActive;
+
 @end
 
 NS_ASSUME_NONNULL_END
