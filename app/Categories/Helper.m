@@ -72,6 +72,7 @@ static NSFileManager *fileManager = nil;
     return osVersion;
 }
 
+
 + (NSFileManager*) getFileManager
 {
     //return [NSFileManager defaultManager];
@@ -82,6 +83,7 @@ static NSFileManager *fileManager = nil;
     
     return fileManager;
 }
+
 
 + (NSArray*) appendObjectsFromDirectory:(NSString*)source excludePattern:(nullable NSString*)pattern toArrayList:(NSArray*)arrayList
 {
@@ -140,7 +142,9 @@ static NSFileManager *fileManager = nil;
 + (NSString*) getHost
 {
     #if LIVE_WWW_HOST == 0
+    
         return @"http://127.0.0.1:8000/api/";
+    
     #endif
     
     return @"https://www.bushfire.services/api/";
@@ -180,15 +184,15 @@ static NSFileManager *fileManager = nil;
         if (isDirectory) {
             objectSize = [Helper spyFolder:source objectCount:objectCount];
         }
-        else
-        {
+        else {
             *objectCount = 1;
-            objectSize   = [Helper spyFile:source];
+            objectSize = [Helper spyFile:source];
         }
     }
     
     return objectSize;
 }
+
 
 + (unsigned long long) spyFolder:(NSString *)source objectCount:(nullable NSUInteger*)objectCount
 {
@@ -220,6 +224,7 @@ static NSFileManager *fileManager = nil;
     return objectSize;
 }
 
+
 + (unsigned long long) spyFile:(NSString *)source
 {
     unsigned long long objectSize = 0;
@@ -234,10 +239,11 @@ static NSFileManager *fileManager = nil;
     return objectSize;
 }
 
+
 + (NSString*) formatBytes:(unsigned long long)size
 {
     NSString *literalText = @"Bytes";
-    double dSize          = size * 1.0;
+    double dSize = size * 1.0;
     
     if (dSize > 1024)
     {
@@ -266,6 +272,7 @@ static NSFileManager *fileManager = nil;
     return [NSString stringWithFormat:@"%.1f %@", (double)dSize, literalText];
 }
 
+
 + (NSString *)runCommand:(NSString *)commandToRun
 {
     NSTask *task = [[NSTask alloc] init];
@@ -288,6 +295,7 @@ static NSFileManager *fileManager = nil;
     return output;
 }
 
+
 + (NSString *)generateUuidString
 {
     CFUUIDRef uuid = CFUUIDCreate(kCFAllocatorDefault);
@@ -298,10 +306,12 @@ static NSFileManager *fileManager = nil;
     return uuidString;
 }
 
+
 + (NSString *)getAbsolutePathWithDirectory:(NSString *)path
 {
     return [NSString stringWithFormat:@"/Users/%@%@", NSUserName(), path];
 }
+
 
 + (NSArray*)appendAbsolutePath:(NSArray*)arrayList
 {
@@ -318,10 +328,12 @@ static NSFileManager *fileManager = nil;
     return finderObjectList;
 }
 
+
 + (bool) restartLaunchAgent:(NSString*)launchAgent logMessage:(NSString*)message
 {
     return [Helper restartLaunchAgent:launchAgent logMessage:message unloadOnly:false];
 }
+
 
 + (bool) restartLaunchAgent:(NSString*)launchAgent logMessage:(NSString*)message unloadOnly:(BOOL)unloadOnly
 {
@@ -368,6 +380,7 @@ static NSFileManager *fileManager = nil;
     return returnValue;
 }
 
+
 + (bool) runTerminalCommand:(NSString*)command logMessage:(NSString*)message
 {
     if (message.length > 0) {
@@ -410,10 +423,12 @@ static NSFileManager *fileManager = nil;
     return true;
 }
 
+
 + (void) moveFinderObject:(NSString*)fromSource to:(NSString*)destination
 {
     [Helper moveFinderObject:fromSource to:destination asTerminalCommand:false];
 }
+
 
 + (void) moveFinderObject:(NSString*)fromSource to:(NSString*)destination asTerminalCommand:(bool)asTerminalCommand
 {
@@ -430,118 +445,112 @@ static NSFileManager *fileManager = nil;
     }
 }
 
-+ (void) detectDataCountAndSize:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize
+
++ (void) _detectDataCountAndSize:
+    (Settings*)settings
+    objectCountCurrent:(nullable NSUInteger*)objectCountCurrent
+    objectSizeCurrent:(nullable unsigned long long*)objectSizeCurrent
+    objectCountActive:(nullable NSUInteger*)objectCountActive
+    objectSizeActive:(nullable unsigned long long*)objectSizeActive
+    objectCountTotal:(nullable NSUInteger*)objectCountTotal
+    objectSizeTotal:(nullable unsigned long long*)objectSizeTotal
 {
-    [TfDataCountSize setStringValue:NSLocalizedString(@"data_count_size_detect", nil)];
+    *objectCountCurrent = 0;
+    *objectSizeCurrent = 0;
+    *objectCountTotal = 0;
+    *objectSizeTotal = 0;
+    *objectCountActive = 0;
+    *objectSizeActive = 0;
+    
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getFormsList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanForms) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
 
-    __block NSUInteger objectCountCurrent = 0;
-    __block unsigned long long objectSizeCurrent = 0;
-
-    __block NSUInteger objectCountTotal = 0;
-    __block unsigned long long objectSizeTotal = 0;
-
-    __block NSUInteger objectCountActive = 0;
-    __block unsigned long long objectSizeActive = 0;
-
-    dispatch_async(dispatch_get_main_queue(), ^
-    {
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getFormsList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-
-        if (settings.CleanForms) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-
-
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getLocationList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-        
-        if (settings.CleanLocation) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-        
-        
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getWebPageIconsList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-        
-        if (settings.CleanWebPageIcons) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-        
-        
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getHistoryList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-        
-        if (settings.CleanHistory) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-        
-        
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getPreviewList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-        
-        if (settings.CleanPreview) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-        
-        
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getTopSitesList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-        
-        if (settings.CleanTopSites) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-        
-        
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getCacheList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-        
-        if (settings.CleanCache) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-        
-        
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getDownloadsList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-        
-        if (settings.CleanDownloads) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-        
-        
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getCookiesList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-        
-        if (settings.CleanCookies) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-        
-        
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getLocalStorageList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-        
-        if (settings.CleanCookies) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-        
-        
-        [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getFlashCookiesList]] objectCountCurrent:&objectCountCurrent objectSizeCurrent:&objectSizeCurrent objectCountTotal:&objectCountTotal objectSizeTotal:&objectSizeTotal];
-        
-        if (settings.CleanCookies) {
-            objectSizeActive  += objectSizeCurrent;
-            objectCountActive += objectCountCurrent;
-        }
-        
-        
-        if (!settings.CleanActive) {
-            objectCountActive = 0;
-            objectSizeActive  = 0;
-        }
-        
-        NSString *dataCountAndSize = [NSString stringWithFormat:NSLocalizedString(@"data_count_size", nil), (int)objectCountActive, (int)objectCountTotal, [Helper formatBytes:objectSizeActive], [Helper formatBytes:objectSizeTotal]];
-        [TfDataCountSize setStringValue:dataCountAndSize];
-    });
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getLocationList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanLocation) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
+    
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getWebPageIconsList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanWebPageIcons) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
+    
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getHistoryList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanHistory) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
+    
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getPreviewList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanPreview) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
+    
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getTopSitesList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanTopSites) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
+    
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getCacheList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanCache) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
+    
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getDownloadsList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanDownloads) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
+    
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getCookiesList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanCookies) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
+    
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getLocalStorageList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanCookies) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
+    
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getFlashCookiesList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanCookies) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
 }
+
 
 + (void) detectDataCountAndSize:(NSArray*)spyList
     objectCountCurrent:(nullable NSUInteger*)objectCountCurrent
@@ -553,11 +562,75 @@ static NSFileManager *fileManager = nil;
     unsigned long long sizeCurrent = [Helper spyFinderObjectFromSourceList:spyList objectCount:&countCurrent];
     
     *objectCountCurrent = countCurrent;
-    *objectSizeCurrent  = sizeCurrent;
+    *objectSizeCurrent = sizeCurrent;
     
     *objectCountTotal += countCurrent;
-    *objectSizeTotal  += sizeCurrent;
+    *objectSizeTotal += sizeCurrent;
 }
+
+
++ (void) detectDataCountAndSize:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize
+{
+    [TfDataCountSize setStringValue:NSLocalizedString(@"data_count_size_detect", nil)];
+
+    __block NSUInteger objectCountCurrent = 0;
+    __block unsigned long long objectSizeCurrent = 0;
+    __block NSUInteger objectCountTotal = 0;
+    __block unsigned long long objectSizeTotal = 0;
+    __block NSUInteger objectCountActive = 0;
+    __block unsigned long long objectSizeActive = 0;
+
+    dispatch_async(dispatch_get_main_queue(), ^
+    {
+        [self _detectDataCountAndSize:settings
+             objectCountCurrent:&objectCountCurrent
+             objectSizeCurrent:&objectSizeCurrent
+             objectCountActive:&objectCountActive
+             objectSizeActive:&objectSizeActive
+             objectCountTotal:&objectCountTotal
+             objectSizeTotal:&objectSizeTotal
+        ];
+        
+        NSString *dataCountAndSize = [NSString stringWithFormat:NSLocalizedString(@"data_count_size", nil),
+            (int) objectCountActive, (int) objectCountTotal, [Helper formatBytes:objectSizeActive], [Helper formatBytes:objectSizeTotal]
+        ];
+        [TfDataCountSize setStringValue:dataCountAndSize];
+    });
+}
+
+
++ (void) detectAndPushCleanUpCounting:(Settings*)settings
+{
+    NSUInteger objectCountCurrent = 0;
+    unsigned long long objectSizeCurrent = 0;
+    NSUInteger objectCountTotal = 0;
+    unsigned long long objectSizeTotal = 0;
+    NSUInteger objectCountActive = 0;
+    unsigned long long objectSizeActive = 0;
+    
+    [self _detectDataCountAndSize:settings
+         objectCountCurrent:&objectCountCurrent
+         objectSizeCurrent:&objectSizeCurrent
+         objectCountActive:&objectCountActive
+         objectSizeActive:&objectSizeActive
+         objectCountTotal:&objectCountTotal
+         objectSizeTotal:&objectSizeTotal
+    ];
+    
+    NSLog(@"Burn [%@]", [NSString stringWithFormat:@"Objects <%d>, Size <%@>", (int) objectCountActive, [Helper formatBytes:objectSizeActive]]);
+    
+    #if PUSH_CLEANUP_COUNTING == 1
+    
+        NSLog(@"Push Cleanup Counting <%@>", @"YES");
+        [Helper pushCleanUpCounting:objectSizeActive cleanupCount:objectCountActive];
+    
+    #else
+    
+        NSLog(@"Push Cleanup Counting <%@>", @"NO");
+    
+    #endif
+}
+
 
 + (NSImage*) flippImage:(NSImage*)image withFrame:(NSRect)destRect
 {
@@ -572,6 +645,7 @@ static NSFileManager *fileManager = nil;
     return image;
 }
 
+
 + (BOOL) isConnected
 {
     Reachability *reach = [Reachability reachabilityForInternetConnection];
@@ -581,7 +655,37 @@ static NSFileManager *fileManager = nil;
         return YES;
     }
     
+    NSLog(@"%@", @"No internet connection");
     return NO;
 }
+
+
+// https://stackoverflow.com/questions/3696910/return-multiple-objects-from-a-method-in-objective-c
+
+//Add a block to your method:
+//
+//- (void)myMethodWithMultipleReturnObjectsForObject:(id)object returnBlock:(void (^)(id returnObject1, id returnObject2))returnBlock
+//{
+//    // do stuff
+//
+//    returnBlock(returnObject1, returnObject2);
+//}
+
+//Then use the method like this:
+//
+//[myMethodWithMultipleReturnObjectsForObject:object returnBlock:^(id returnObject1, id returnObject2) {
+//    // Use the return objects inside the block
+//}];
+
+//The return objects in the above example are only usable within the block, so if you want to keep them around for use outside the block, just set some __block vars.
+//
+//// Keep the objects around for use outside of the block
+//__block id object1;
+//__block id object2;
+//[myMethodWithMultipleReturnObjectsForObject:object returnBlock:^(id returnObject1, id returnObject2) {
+//    object1 = returnObject1;
+//    object2 = returnObject2;
+//}];
+
 
 @end

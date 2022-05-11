@@ -49,12 +49,13 @@ static NSFileManager *fileManager = nil;
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         dispatch_group_async(group, queue, ^{
-
+            
+            [Helper detectAndPushCleanUpCounting:settings];
             bool burnSecure = settings.CleanSecureActive;
 
             // Start burn ...
             //
-            NSLog(@"Prepare to burn [secure:%@].", (burnSecure ? @"Yes" : @"No"));
+            NSLog(@"Prepare to burn [secure: <%@>]", (burnSecure ? @"YES" : @"NO"));
 
             // Always try to burn Bushfire junk files !!!
             //
@@ -86,29 +87,15 @@ static NSFileManager *fileManager = nil;
                 }
             }
 
-            NSUInteger objectCount = 0;
-            unsigned long long objectSize = [Helper spyFolder:quePath objectCount:&objectCount];
-            NSString *queSpyInfo = [NSString stringWithFormat:@"Objects: %d, Size: %@", (int)objectCount, [Helper formatBytes:objectSize]];
-            
             #if DEBUG == 1
 
-                NSLog(@"[DBG] Burn %@ [%@].", bfQue, queSpyInfo);
-
-            #else
-
-                NSLog(@"Burn [%@].", queSpyInfo);
+                NSLog(@"[DBG] Burn Que: <%@>", bfQue);
 
             #endif
-
+            
             // Burn the Q-Folder ...
             //
             [self m_deleteFile:@"/tmp/bfrmque.*" secure:burnSecure];
-            
-            #if PUSH_CLEANUP_COUNTING == 1
-            
-                [Helper pushCleanUpCounting:objectSize cleanupCount:objectCount];
-            
-            #endif
             
             if (block) {
                 block([NSNumber numberWithBool:settings.CleanActive], nil);

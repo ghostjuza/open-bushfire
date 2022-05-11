@@ -6,9 +6,13 @@
 ### Build 2022.10 (2022-05-11)
 `fix` Issue [#17](https://github.com/ghostjuza/open-bushfire/issues/17)  
 
+### Build 2020.385 (2020-01-27)
+`improved` push exactly burn data count and size at webservice.  
+`improved` detect burn data count and size.
+
 ### Build 2020.279 (2020-01-26)
 `improved` Implementation.  
-`new` Push total file count and size to webservice. 
+`new` Push total file count and size of cleanup to webservice. 
 
 ### Build 2020.200 (2020-01-23)
 `improved` **GHI-#7** Check system integrity protection and full disk access and show an alert.  
