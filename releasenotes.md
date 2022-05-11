@@ -1,5 +1,8 @@
 # Release Notes
 
+### Build 2022.10 (2022-05-11)
+`fix` Issue [#17](https://github.com/ghostjuza/open-bushfire/issues/17)  
+
 ### Build 2020.279 (2020-01-26)
 `improved` Implementation.  
 `new` Push total file count and size to webservice. 
