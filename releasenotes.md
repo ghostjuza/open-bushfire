@@ -1,5 +1,8 @@
 # Release Notes
 
+### Build 2022.16 (2022-05-11)
+`fix` Service call.  
+
 ### Build 2022.10 (2022-05-11)
 `fix` Issue [#17](https://github.com/ghostjuza/open-bushfire/issues/17)  
 

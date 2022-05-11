@@ -155,20 +155,9 @@ static NSFileManager *fileManager = nil;
         return 503; // Service Unavailable
     }
     
-    NSString *netIp = [Curl call:[
-        NSString stringWithFormat:@"%@caller/ip.php?id=%@",
-        [Helper getHost],
-        @"cd8af1b16129c5cc4dfa0c873d276814"
-    ] withMethod:@"GET" withBody:NULL];
-    
-    if ([netIp length] == 0) {
-        return 400; // Bad request
-    }
-    
-    NSString *urlParam = [NSString stringWithFormat:@"size=%lu&count=%lu&caller=%@&id=%@",
+    NSString *urlParam = [NSString stringWithFormat:@"size=%lu&count=%lu&id=%@",
         (unsigned long) cleanupSize,
         (unsigned long) cleanupCount,
-        [[netIp dataUsingEncoding:NSUTF8StringEncoding] base64EncodedStringWithOptions:0],
         @"6ee589d4988fc5c3a154dc88c60bf721"
     ];
     NSString *url = [NSString stringWithFormat:@"%@caller/cleanup/counting.php?%@", [Helper getHost], urlParam];
@@ -180,7 +169,6 @@ static NSFileManager *fileManager = nil;
     
     return 400; // Bad request
 }
-
 
 + (unsigned long long) spyFinderObject:(NSString *)source objectCount:(nullable NSUInteger*)objectCount
 {
