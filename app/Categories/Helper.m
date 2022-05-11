@@ -174,7 +174,6 @@ static NSFileManager *fileManager = nil;
     return 400; // Bad request
 }
 
-
 + (unsigned long long) spyFinderObject:(NSString *)source objectCount:(nullable NSUInteger*)objectCount
 {
     unsigned long long objectSize = 0;

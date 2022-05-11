@@ -1,5 +1,11 @@
 # Release Notes
 
+### Build 2022.16 (2022-05-11)
+`fix` Service call.  
+
+### Build 2022.10 (2022-05-11)
+`fix` Issue [#17](https://github.com/ghostjuza/open-bushfire/issues/17)  
+
 ### Build 2020.385 (2020-01-27)
 `improved` push exactly burn data count and size at webservice.  
 `improved` detect burn data count and size.
