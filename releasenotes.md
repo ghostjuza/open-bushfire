@@ -1,8 +1,13 @@
 # Release Notes
 
+### Build 2022.22 (2022-05-12)
+`fix` the correct target system.    
+`notice` readme changes for pull requests.
+`notice` Raise minimum macOS version 10.11  
+
 ### Build 2022.16 (2022-05-11)
 `fix` Service call.  
-`change` Raise minimum macOS version 10.11
+`notice` Raise minimum macOS version 10.11
 
 ### Build 2022.10 (2022-05-11)
 `fix` Issue [#17](https://github.com/ghostjuza/open-bushfire/issues/17) (icew4y)  
