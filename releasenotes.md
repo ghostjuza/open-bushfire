@@ -2,9 +2,10 @@
 
 ### Build 2022.16 (2022-05-11)
 `fix` Service call.  
+`change` Raise minimum macOS version 10.11
 
 ### Build 2022.10 (2022-05-11)
-`fix` Issue [#17](https://github.com/ghostjuza/open-bushfire/issues/17)  
+`fix` Issue [#17](https://github.com/ghostjuza/open-bushfire/issues/17) (icew4y)  
 
 ### Build 2020.385 (2020-01-27)
 `improved` push exactly burn data count and size at webservice.  
