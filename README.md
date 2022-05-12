@@ -5,7 +5,7 @@
 ## Status
 
 The app is pretty stable.  
-Currently it runs up to macOS Catalina.
+Currently it runs up macOS 10.11 to 12.x.
 
 ## Quick Links
 
@@ -20,18 +20,16 @@ Here's a [list of issues](https://github.com/ghostjuza/open-bushfire/issues) whe
 
 ### Important notes for pull requests
 
-* work on the right branch: it must be `develop` for new features and `master` for hotfixes
+* work with feature or hotfix branches
+  * create your **feature** (feature/...) or **hotfix** (hotfix/...) branch always from `master`
+  * push your feature or hotfix branch to your own forked repo
+  * create a **Pull request**: [YourBranch] to [ghostjuza/open-bushfire:master]
 * please respect existing style in code, styles, and markup
-* don't add any dependencies
-* write good code
+* don't add any dependencies, sniffer, spycode, malware, ...
+* write clean code
 * test your code
 * refactoring welcome
 * please don't change `Version` and `Build` fields. They are will be set automaticly!<br/><br/>![screenshot](img/dont-change-version-and-build-info.png)
-
-## Compile the App
-
-* you need Apple's Xcode `;)`
-* config your app signing right<br/><br/><img src="img/code-signing.png" width="700"/>
 
 ## Donations
 
