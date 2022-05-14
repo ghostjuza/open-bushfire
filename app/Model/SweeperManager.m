@@ -243,6 +243,7 @@ static NSFileManager *fileManager = nil;
         @"Library/Cookies/com.apple.Safari.SafeBrowsing.binarycookies",
         @"Library/Cookies/Cookies.plist",
         @"Library/Cookies/Cookies.binarycookies",
+        @"Library/Containers/com.apple.Safari/Data/Library/Cookies",
         nil
     ];
 }
