@@ -4,7 +4,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface Helper : NSObject
 
++ (NSString*)getBundleVersion;
 + (NSString*)getOSVersionFullVersion;
++ (NSString*)getOSVersionAsString;
++ (NSString*)getOSBuildAsString;
 + (NSInteger)getOSVersion;
 + (bool)isHiddenClearOptionsPressed;
 + (BOOL)isConnected;

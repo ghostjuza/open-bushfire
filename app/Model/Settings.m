@@ -21,7 +21,7 @@
 @synthesize CleanReadingList         = _CleanReadingList;
 @synthesize CleanRemoteNotifications = _CleanRemoteNotifications;
 @synthesize CleanOfflineData         = _CleanOfflineData;
-@synthesize CleanMailDownloads = _CleanMailDownloads;
+@synthesize CleanMailDownloads       = _CleanMailDownloads;
 
 @synthesize SipEnabledConfirmed = _SipEnabledConfirmed;
 
@@ -52,6 +52,7 @@
         settings.CleanPreview       = YES;
         settings.CleanTopSites      = YES;
         settings.CleanWebPageIcons  = YES;
+        settings.CleanOfflineData   = YES;
         
         settings.SipEnabledConfirmed = NO;
 
@@ -59,7 +60,6 @@
         //
 //        settings.CleanReadingList         = NO;
 //        settings.CleanRemoteNotifications = NO;
-//        settings.CleanOfflineData         = NO;
 //
 //        settings.CleanMailDownloads = NO;
     }
@@ -98,12 +98,12 @@
     [encoder encodeBool:self.CleanPreview forKey:@"cleanPreview"];
     [encoder encodeBool:self.CleanTopSites forKey:@"cleanTopSites"];
     [encoder encodeBool:self.CleanWebPageIcons forKey:@"cleanWebPageIcons"];
+    [encoder encodeBool:self.CleanOfflineData forKey:@"cleanOfflineData"];
     
     [encoder encodeBool:self.SipEnabledConfirmed forKey:@"confirmedSipEnabled"];
 
 //    [encoder encodeBool:self.CleanReadingList forKey:@"cleanReadingList"];
 //    [encoder encodeBool:self.CleanRemoteNotifications forKey:@"cleanRemoteNotifications"];
-//    [encoder encodeBool:self.CleanOfflineData forKey:@"cleanOfflineData"];
 //    [encoder encodeBool:self.CleanMailDownloads forKey:@"cleanMailDownloads"];
 }
 
@@ -129,12 +129,12 @@
         self.CleanPreview       = [decoder decodeBoolForKey:@"cleanPreview"];
         self.CleanTopSites      = [decoder decodeBoolForKey:@"cleanTopSites"];
         self.CleanWebPageIcons  = [decoder decodeBoolForKey:@"cleanWebPageIcons"];
+        self.CleanOfflineData   = [decoder decodeBoolForKey:@"cleanOfflineData"];
         
         self.SipEnabledConfirmed  = [decoder decodeBoolForKey:@"confirmedSipEnabled"];
 
 //        self.CleanReadingList         = [decoder decodeBoolForKey:@"cleanReadingList"];
 //        self.CleanRemoteNotifications = [decoder decodeBoolForKey:@"cleanRemoteNotifications"];
-//        self.CleanOfflineData         = [decoder decodeBoolForKey:@"cleanOfflineData"];
 //
 //        self.CleanMailDownloads = [decoder decodeBoolForKey:@"cleanMailDownloads"];
     }

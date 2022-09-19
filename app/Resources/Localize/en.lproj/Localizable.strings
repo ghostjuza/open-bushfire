@@ -17,7 +17,7 @@
 "data_count_size_detect"    = "...";
 "start_logon"               = "Launch at Login";
 "clean_active"              = "Safari";
-"cache"                     = "Cache";
+"cache"                     = "Cache + Local Storage";
 "cookies"                   = "Cookies";
 "zombie_cookies"            = "~ Zombie-Cookies";
 "preview"                   = "Website Previews";
@@ -27,7 +27,7 @@
 "downloads"                 = "Downloads";
 "downloads_mail"            = "Downloads (Mail)";
 "location"                  = "Location Warnings";
-"offline"                   = "Local Storage (HTML5)";
+"offline_data"              = "Local Storage (HTML5)";
 "reading_list"              = "Reading List";
 "remote_notifications"      = "Notifications";
 "web_page_icons"            = "Webpage Icons";
