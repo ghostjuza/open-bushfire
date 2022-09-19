@@ -67,13 +67,15 @@ static NSFileManager *fileManager = nil;
             (!settings.CleanHistory ?: [self m_moveToQueHistory:quePath]);
             (!settings.CleanPreview ?: [self m_moveToQuePreview:quePath]);
             (!settings.CleanTopSites ?: [self m_moveToQueTopSites:quePath]);
-            (!settings.CleanCache ?: [self m_moveToQueCache:quePath]);
             (!settings.CleanDownloads ?: [self m_moveToQueDownloads:quePath]);
             (!settings.CleanMailDownloads ?: [self m_moveToQueMailDownloads:quePath]);
+            
+            (!settings.CleanCache ?: [self m_moveToQueCache:quePath]);
+            (!settings.CleanCache ?: [self m_moveToQueOfflineData:quePath]); // settings.CleanOfflineData
 
             // if (settings.CleanReadingList) [self m_moveToQueReadingList];
             // if (settings.CleanRemoteNotifications) [self m_moveToQueRemoteNotifications];
-            // if (settings.CleanOfflineData) [self m_moveToQueOfflineData];
+            
 
             if (settings.CleanCookies)
             {
@@ -545,10 +547,29 @@ static NSFileManager *fileManager = nil;
     ];
 }
 
-//- (void)m_cleanOfflineData
-//{
-//    [self m_deleteFile:[self m_absolutePathWithDirectory:@"/Library/Safari/LocalStorage"] secure:NO];
-//}
+- (void) m_moveToQueOfflineData:(NSString*)quePath
+{
+    NSArray *arrayList = [SweeperManager getOfflineDataList];
+    [self moveToQueByArrayList:arrayList toQuePath:quePath];
+}
+
++ (NSArray*) getOfflineDataList
+{
+    return [NSArray arrayWithObjects:
+        @"Library/Safari/LocalStorage",
+        
+        // [Helper getOSVersion] >= 1200
+        @"Library/Containers/Safari/Data/Library/HTTPStorages/com.apple.Safari",
+        @"Library/Containers/Safari/Data/Library/WebKit/WebsiteData/LocalStorage",
+        @"Library/Containers/Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics",
+        @"Library/Containers/Safari/Data/Library/WebKit/WebsiteData/Default",
+        @"Library/Containers/com.apple.Safari/Data/Library/HTTPStorages/com.apple.Safari",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/LocalStorage",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/Default",
+        nil
+    ];
+}
 
 //- (void)m_cleanReadingList
 //{

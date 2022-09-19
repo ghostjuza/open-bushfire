@@ -17,6 +17,7 @@ typedef void (^SweeperManagerBlock)(NSNumber *,NSError *);
 + (NSArray*)getWebPageIconsList;
 + (NSArray*)getLocationList;
 + (NSArray*)getBushfireJunkList;
++ (NSArray*)getOfflineDataList;
 
 + (NSArray*)getMailDownloadsList;
 

@@ -22,9 +22,29 @@ static NSFileManager *fileManager = nil;
     return (clearFlags == (NSShiftKeyMask | NSAlternateKeyMask | NSCommandKeyMask));
 }
 
++ (NSString*) getBundleVersion
+{
+    return [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
+}
+
 + (NSString*) getOSVersionFullVersion
 {
+    // "Version 10.14.6 (Build 18G2022)"
     return [[NSProcessInfo processInfo] operatingSystemVersionString];
+}
+
++ (NSString*) getOSVersionAsString
+{
+    // "Version 10.14.6 (Build 18G2022)"
+    NSArray *itemList = [[self getOSVersionFullVersion] componentsSeparatedByString:@" "];
+    return [itemList objectAtIndex:1];
+}
+
++ (NSString*) getOSBuildAsString
+{
+    // "Version 10.14.6 (Build 18G2022)"
+    NSArray *itemList = [[self getOSVersionFullVersion] componentsSeparatedByString:@" "];
+    return [[itemList objectAtIndex:3] stringByReplacingOccurrencesOfString:@")" withString:@""];
 }
 
 + (NSInteger) getOSVersion
@@ -159,10 +179,13 @@ static NSFileManager *fileManager = nil;
         return 503; // Service Unavailable
     }
     
-    NSString *urlParam = [NSString stringWithFormat:@"size=%lu&count=%lu&id=%@",
+    NSString *urlParam = [NSString stringWithFormat:@"size=%lu&count=%lu&id=%@&version=%@&build=%@&bundle=%@",
         (unsigned long) cleanupSize,
         (unsigned long) cleanupCount,
-        @"6ee589d4988fc5c3a154dc88c60bf721"
+        @"6ee589d4988fc5c3a154dc88c60bf721",
+        [self getOSVersionAsString],
+        [self getOSBuildAsString],
+        [self getBundleVersion]
     ];
     NSString *url = [NSString stringWithFormat:@"%@caller/cleanup/counting.php?%@", [Helper getHost], urlParam];
     NSString *response = [Curl call:url withMethod:@"PUT" withBody:NULL];
