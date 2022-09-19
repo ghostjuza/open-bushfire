@@ -33,6 +33,7 @@ enum {
     SettingsModeRemoteNotifications = 10,
     SettingsModeMailDownloads       = 11,
     SettingsModeWebPageIcons        = 12
+//    SettingsModeOfflineData         = 13
 } SettingsMode;
 
 
@@ -116,6 +117,7 @@ static bool ANIMATE = false;
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"forms",nil), @"title", [NSNumber numberWithInt:SettingsModeForms], @"tag", nil],
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"location",nil), @"title", [NSNumber numberWithInt:SettingsModeLocation], @"tag", nil],
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"web_page_icons",nil), @"title", [NSNumber numberWithInt:SettingsModeWebPageIcons], @"tag", nil],
+            //[NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"offline_data",nil), @"title", [NSNumber numberWithInt:SettingsModeWebPageIcons], @"tag", nil],
 
             //[NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"downloads_mail",nil), @"title", [NSNumber numberWithInt:SettingsModeMailDownloads], @"tag", nil],
             //[NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"reading_list",nil), @"title", [NSNumber numberWithInt:SettingsModeReadingList], @"tag", nil],
@@ -595,7 +597,7 @@ static bool ANIMATE = false;
             return self.a_settings.CleanWebPageIcons;
             break;
 
-//        case 7:
+//        case SettingsModeOfflineData:
 //            return self.a_settings.CleanOfflineData;
 //            break;
     }
@@ -664,8 +666,8 @@ static bool ANIMATE = false;
             self.a_settings.CleanWebPageIcons = ![self isSettingActiveForRow:button.tag];
             break;
 
-//        case 7:
-//            self.a_settings.CleanOfflineData = ![self isSettingActiveForRow:row];
+//        case SettingsModeOfflineData:
+//            self.a_settings.CleanOfflineData = ![self isSettingActiveForRow:button.tag];
 //            break;
     }
 

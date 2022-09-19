@@ -32,7 +32,7 @@
     [super windowDidLoad];
       
     //NSString *version    = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
-    NSString *version    = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
+    NSString *version    = [Helper getBundleVersion];
     NSString *versionTag = @"\nGNU General Public License v3.0";
     
     #if DEBUG == 1
