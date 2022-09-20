@@ -32,8 +32,8 @@ enum {
     SettingsModeReadingList         = 9,
     SettingsModeRemoteNotifications = 10,
     SettingsModeMailDownloads       = 11,
-    SettingsModeWebPageIcons        = 12
-//    SettingsModeOfflineData         = 13
+    SettingsModeWebPageIcons        = 12,
+    SettingsModeOfflineData         = 13
 } SettingsMode;
 
 
@@ -117,7 +117,7 @@ static bool ANIMATE = false;
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"forms",nil), @"title", [NSNumber numberWithInt:SettingsModeForms], @"tag", nil],
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"location",nil), @"title", [NSNumber numberWithInt:SettingsModeLocation], @"tag", nil],
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"web_page_icons",nil), @"title", [NSNumber numberWithInt:SettingsModeWebPageIcons], @"tag", nil],
-            //[NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"offline_data",nil), @"title", [NSNumber numberWithInt:SettingsModeWebPageIcons], @"tag", nil],
+            [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"offline_data",nil), @"title", [NSNumber numberWithInt:SettingsModeOfflineData], @"tag", nil],
 
             //[NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"downloads_mail",nil), @"title", [NSNumber numberWithInt:SettingsModeMailDownloads], @"tag", nil],
             //[NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"reading_list",nil), @"title", [NSNumber numberWithInt:SettingsModeReadingList], @"tag", nil],
@@ -597,9 +597,9 @@ static bool ANIMATE = false;
             return self.a_settings.CleanWebPageIcons;
             break;
 
-//        case SettingsModeOfflineData:
-//            return self.a_settings.CleanOfflineData;
-//            break;
+        case SettingsModeOfflineData:
+            return self.a_settings.CleanOfflineData;
+            break;
     }
 
     return NO;
@@ -666,9 +666,9 @@ static bool ANIMATE = false;
             self.a_settings.CleanWebPageIcons = ![self isSettingActiveForRow:button.tag];
             break;
 
-//        case SettingsModeOfflineData:
-//            self.a_settings.CleanOfflineData = ![self isSettingActiveForRow:button.tag];
-//            break;
+        case SettingsModeOfflineData:
+            self.a_settings.CleanOfflineData = ![self isSettingActiveForRow:button.tag];
+            break;
     }
 
     [self.a_settings saveSettings];
@@ -705,8 +705,14 @@ static bool ANIMATE = false;
     } 
     else
     {
-        dispatch_async(dispatch_get_current_queue(), ^
-        {
+        //if (!isMyQueue()) {
+        //    self.myQueue = dispatch_queue_create("QueDataCountAndSize", DISPATCH_QUEUE_SERIAL);
+        //}
+        //dispatch_queue_set_specific(self.myQueue, @selector(myQueue), @selector(myQueue), NULL);
+        
+        // dispatch_get_current_queue | dispatch_get_main_queue
+        //dispatch_async(self.myQueue, ^ {
+        dispatch_async(dispatch_get_main_queue(), ^ {
             [Helper detectDataCountAndSize:self.a_settings targetTextField:self.TfDataCountSize];
             [self restorePanel:1.0];
         });
@@ -789,12 +795,25 @@ static bool ANIMATE = false;
     [self.a_btnCleanActive setState:self.a_settings.CleanActive];
     [self.a_containerView setHidden:YES];
     
-    dispatch_async(dispatch_get_current_queue(), ^
-    {
+    //if (!isMyQueue()) {
+    //    self.myQueue = dispatch_queue_create("QueDataCountAndSize", DISPATCH_QUEUE_SERIAL);
+    //}
+    //dispatch_queue_set_specific(self.myQueue, @selector(myQueue), @selector(myQueue), NULL);
+    
+    // dispatch_get_current_queue | dispatch_get_main_queue
+    //dispatch_async(self.myQueue, ^{
+    dispatch_async(dispatch_get_main_queue(), ^ {
         [Helper detectDataCountAndSize:self.a_settings targetTextField:self.TfDataCountSize];
         [self restorePanel:1.0];
     });
 }
+
+
+// https://github.com/inkling/Subliminal/issues/164
+//BOOL isMyQueue(void)
+//{
+//    return dispatch_get_specific(@selector(myQueue)) != NULL;
+//}
 
 
 /**
@@ -851,6 +870,7 @@ static bool ANIMATE = false;
 - (IBAction)actionUpdateCheck:(id)sender
 {
     [[[[SUUpdater alloc] init] autorelease] checkForUpdates:nil];
+    //[[[SPUStandardUpdaterController alloc] autorelease] checkForUpdates:nil]; // SPUUpdater
 }
 
 @end
