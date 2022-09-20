@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15702" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="21225" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15702"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21225"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -29,14 +29,14 @@
             <windowStyleMask key="styleMask" utility="YES" nonactivatingPanel="YES"/>
             <windowCollectionBehavior key="collectionBehavior" canJoinAllSpaces="YES" ignoresCycle="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="162" y="101" width="305" height="300"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
+            <rect key="contentRect" x="162" y="101" width="305" height="546"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="3008" height="1667"/>
             <view key="contentView" wantsLayer="YES" alphaValue="0.94999999999999996" id="6" customClass="BackgroundView">
-                <rect key="frame" x="0.0" y="0.0" width="305" height="300"/>
+                <rect key="frame" x="0.0" y="0.0" width="305" height="546"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <button hidden="YES" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="124">
-                        <rect key="frame" x="12" y="261" width="215" height="18"/>
+                        <rect key="frame" x="12" y="507" width="215" height="18"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="bevel" title="Check" bezelStyle="regularSquare" image="ckbx_default" imagePosition="left" alignment="left" state="on" inset="2" id="125" customClass="CheckboxCell">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -47,7 +47,7 @@
                         </buttonCell>
                     </button>
                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="118">
-                        <rect key="frame" x="12" y="261" width="88" height="18"/>
+                        <rect key="frame" x="12" y="507" width="88" height="18"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="bevel" title="sweep" bezelStyle="regularSquare" image="ckbx_default" imagePosition="left" alignment="left" state="on" inset="2" id="119" customClass="CheckboxCell">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -58,7 +58,7 @@
                         </connections>
                     </button>
                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="87">
-                        <rect key="frame" x="269" y="263" width="32" height="32"/>
+                        <rect key="frame" x="269" y="509" width="32" height="32"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="bevel" bezelStyle="rounded" image="btn_settings" imagePosition="below" alignment="center" alternateImage="btn_settings_pressed" imageScaling="proportionallyDown" inset="2" id="88">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -69,7 +69,7 @@
                         </connections>
                     </button>
                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="lEq-uk-aZw" userLabel="Btn Burn Now">
-                        <rect key="frame" x="237" y="263" width="32" height="32"/>
+                        <rect key="frame" x="237" y="509" width="32" height="32"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="bevel" bezelStyle="rounded" image="btn_burn_now" imagePosition="below" alignment="center" alternateImage="btn_burn_now_pressed" imageScaling="proportionallyDown" inset="2" id="jD6-71-njN">
                             <behavior key="behavior" lightByContents="YES"/>
@@ -80,7 +80,7 @@
                         </connections>
                     </button>
                     <customView hidden="YES" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="123" propertyAccessControl="all">
-                        <rect key="frame" x="1" y="105" width="303" height="151"/>
+                        <rect key="frame" x="1" y="351" width="303" height="151"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <subviews>
                             <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5cQ-UA-fKA" userLabel="Abtn Clean Secure Active">
@@ -130,85 +130,101 @@
                         </subviews>
                     </customView>
                     <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="204">
-                        <rect key="frame" x="0.0" y="9" width="305" height="255"/>
+                        <rect key="frame" x="0.0" y="9" width="305" height="501"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" heightSizable="YES"/>
                         <subviews>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="205" customClass="DarkLineView">
-                                <rect key="frame" x="1" y="191" width="303" height="1"/>
+                                <rect key="frame" x="1" y="437" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="232" customClass="LineView">
-                                <rect key="frame" x="1" y="190" width="303" height="1"/>
+                                <rect key="frame" x="1" y="436" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="218" customClass="DarkLineView">
-                                <rect key="frame" x="1" y="158" width="303" height="1"/>
+                                <rect key="frame" x="1" y="404" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="233" customClass="LineView">
-                                <rect key="frame" x="1" y="157" width="303" height="1"/>
+                                <rect key="frame" x="1" y="403" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="219" customClass="DarkLineView">
-                                <rect key="frame" x="1" y="126" width="303" height="1"/>
+                                <rect key="frame" x="1" y="372" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="234" customClass="LineView">
-                                <rect key="frame" x="1" y="125" width="303" height="1"/>
+                                <rect key="frame" x="1" y="371" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="220" customClass="DarkLineView">
-                                <rect key="frame" x="1" y="94" width="303" height="1"/>
+                                <rect key="frame" x="1" y="340" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="235" customClass="LineView">
-                                <rect key="frame" x="1" y="93" width="303" height="1"/>
+                                <rect key="frame" x="1" y="339" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="221" customClass="DarkLineView">
-                                <rect key="frame" x="1" y="62" width="303" height="1"/>
+                                <rect key="frame" x="1" y="308" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="236" customClass="LineView">
-                                <rect key="frame" x="1" y="61" width="303" height="1"/>
+                                <rect key="frame" x="1" y="307" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="222" customClass="DarkLineView">
-                                <rect key="frame" x="1" y="30" width="303" height="1"/>
+                                <rect key="frame" x="1" y="276" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="237" customClass="LineView">
-                                <rect key="frame" x="1" y="29" width="303" height="1"/>
+                                <rect key="frame" x="1" y="275" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="223" customClass="DarkLineView">
-                                <rect key="frame" x="1" y="-2" width="303" height="1"/>
+                                <rect key="frame" x="1" y="244" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="238" customClass="LineView">
-                                <rect key="frame" x="1" y="-3" width="303" height="1"/>
+                                <rect key="frame" x="1" y="243" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ouC-r2-dfW" customClass="DarkLineView">
-                                <rect key="frame" x="1" y="-34" width="303" height="1"/>
+                                <rect key="frame" x="1" y="212" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8oZ-2c-aqQ" customClass="LineView">
-                                <rect key="frame" x="1" y="-35" width="303" height="1"/>
+                                <rect key="frame" x="1" y="211" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Sn4-Fy-fpm" customClass="DarkLineView">
-                                <rect key="frame" x="1" y="-66" width="303" height="1"/>
+                                <rect key="frame" x="1" y="180" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                             <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="C4V-Vx-Ws1" customClass="LineView">
-                                <rect key="frame" x="1" y="-67" width="303" height="1"/>
+                                <rect key="frame" x="1" y="179" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="TgV-0b-fH7" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="148" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="17V-7q-Eay" customClass="LineView">
+                                <rect key="frame" x="1" y="147" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sBQ-hl-geU" customClass="DarkLineView">
+                                <rect key="frame" x="1" y="116" width="303" height="1"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            </customView>
+                            <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3Sc-bu-PpG" customClass="LineView">
+                                <rect key="frame" x="1" y="115" width="303" height="1"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </customView>
                         </subviews>
                     </customView>
                     <textField autoresizesSubviews="NO" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="AMe-NO-5sx" userLabel="Tf DataCountSize" propertyAccessControl="none">
-                        <rect key="frame" x="3" y="223" width="298" height="25"/>
+                        <rect key="frame" x="3" y="469" width="298" height="25"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <textFieldCell key="cell" controlSize="mini" allowsUndo="NO" sendsActionOnEndEditing="YES" alignment="center" title="@data_count_size" usesSingleLineMode="YES" id="p7N-9p-bhF">
                             <font key="font" metaFont="systemLight" size="11"/>
@@ -221,7 +237,7 @@
             <connections>
                 <outlet property="delegate" destination="-2" id="8"/>
             </connections>
-            <point key="canvasLocation" x="140" y="154"/>
+            <point key="canvasLocation" x="139.5" y="277"/>
         </window>
         <userDefaultsController representsSharedInstance="YES" id="89"/>
     </objects>

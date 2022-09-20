@@ -17,7 +17,7 @@
 "data_count_size_detect"    = "...";
 "start_logon"               = "Launch at Login";
 "clean_active"              = "Safari";
-"cache"                     = "Cache + Local Storage";
+"cache"                     = "Cache";
 "cookies"                   = "Cookies";
 "zombie_cookies"            = "~ Zombie-Cookies";
 "preview"                   = "Website Previews";

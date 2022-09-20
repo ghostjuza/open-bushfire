@@ -8,6 +8,7 @@
 
 @property BOOL hasActivePanel;
 @property (nonatomic, readonly) id<PanelControllerDelegate> Delegate;
+//@property (nonatomic, strong) dispatch_queue_t myQueue;
 
 - (id)initWithDelegate:(id<PanelControllerDelegate>)delegate;
 

@@ -69,9 +69,8 @@ static NSFileManager *fileManager = nil;
             (!settings.CleanTopSites ?: [self m_moveToQueTopSites:quePath]);
             (!settings.CleanDownloads ?: [self m_moveToQueDownloads:quePath]);
             (!settings.CleanMailDownloads ?: [self m_moveToQueMailDownloads:quePath]);
-            
             (!settings.CleanCache ?: [self m_moveToQueCache:quePath]);
-            (!settings.CleanCache ?: [self m_moveToQueOfflineData:quePath]); // settings.CleanOfflineData
+            (!settings.CleanOfflineData ?: [self m_moveToQueOfflineData:quePath]);
 
             // if (settings.CleanReadingList) [self m_moveToQueReadingList];
             // if (settings.CleanRemoteNotifications) [self m_moveToQueRemoteNotifications];
@@ -559,10 +558,6 @@ static NSFileManager *fileManager = nil;
         @"Library/Safari/LocalStorage",
         
         // [Helper getOSVersion] >= 1200
-        @"Library/Containers/Safari/Data/Library/HTTPStorages/com.apple.Safari",
-        @"Library/Containers/Safari/Data/Library/WebKit/WebsiteData/LocalStorage",
-        @"Library/Containers/Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics",
-        @"Library/Containers/Safari/Data/Library/WebKit/WebsiteData/Default",
         @"Library/Containers/com.apple.Safari/Data/Library/HTTPStorages/com.apple.Safari",
         @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/LocalStorage",
         @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics",

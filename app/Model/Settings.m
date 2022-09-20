@@ -17,13 +17,12 @@
 @synthesize CleanPreview       = _CleanPreview;
 @synthesize CleanTopSites      = _CleanTopSites;
 @synthesize CleanWebPageIcons  = _CleanWebPageIcons;
+@synthesize CleanOfflineData   = _CleanOfflineData;
 
 @synthesize CleanReadingList         = _CleanReadingList;
 @synthesize CleanRemoteNotifications = _CleanRemoteNotifications;
-@synthesize CleanOfflineData         = _CleanOfflineData;
 @synthesize CleanMailDownloads       = _CleanMailDownloads;
-
-@synthesize SipEnabledConfirmed = _SipEnabledConfirmed;
+@synthesize SipEnabledConfirmed      = _SipEnabledConfirmed;
 
 
 + (id)settingsFromDefaults
