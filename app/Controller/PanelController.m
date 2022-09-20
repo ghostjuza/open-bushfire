@@ -296,6 +296,10 @@ static bool ANIMATE = false;
     CGFloat panelX    = statusX - NSMinX(panelRect);
         
     self.a_backgroundView.arrowX = panelX;
+    
+    if (@available(macOS 10.14, *)) {
+        self.a_backgroundView.arrowX += 8;
+    }
 }
 
 
