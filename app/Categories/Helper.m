@@ -541,6 +541,14 @@ static NSFileManager *fileManager = nil;
         *objectCountActive += *objectCountCurrent;
     }
     
+    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getOfflineDataList]]
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
+    ];
+    if (settings.CleanActive && settings.CleanOfflineData) {
+        *objectSizeActive  += *objectSizeCurrent;
+        *objectCountActive += *objectCountCurrent;
+    }
+    
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getDownloadsList]]
         objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal
     ];
