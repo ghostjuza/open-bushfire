@@ -109,21 +109,20 @@ static MenubarController *m_staticMenubarController;
 
 // Prototype Code !!!!
 //
+// Apple hat das Sicherheitskonzept namens „System Integrity Protection“ (SIP) – auch „Rootless“ genannt – mit OS X 10.11 El Capitan eingeführt.
+// SIP sorgt dafür, dass Programme und Anwender selbst mit Root-Rechten keine System-Ordner von macOS mehr verändern können.
+// Zudem sind Zugriffe auf laufende Prozesse und somit auch Debugging-Funktionen eingeschränkt.
+// Deshalb funktionieren einige Tools, die weit in das System eingreifen, nur ohne SIP-Schutz so wie gewünscht.
+// Quelle: https://www.heise.de/ratgeber/System-Integrity-Protection-SIP-in-macOS-deaktivieren-3946690.html
+//
+// SIP deaktivieren: "csrutil disable"
+//
 - (BOOL) checkSystemIntegrityProtection
 {
-//    NSDictionary *options = @{(id)kAXTrustedCheckOptionPrompt: @YES};
-//    BOOL accessibilityEnabled = AXIsProcessTrustedWithOptions((CFDictionaryRef)options);
-//
-//    if (!accessibilityEnabled) {
-//        return;
-//    }
-    
     NSString *logMsg = @"SystemIntegrityProtection status: %@";
 
     if (@available(macOS 10.14, *)) {
-        
         NSString *sipStatus = [Helper runCommand:@"csrutil status"];
-        
         if ([sipStatus rangeOfString:@"disabled"].location == NSNotFound) {
             if (!self.a_settings.SipEnabledConfirmed) {
                 [self alertSystemIntegrityProtection];
@@ -165,53 +164,53 @@ static MenubarController *m_staticMenubarController;
 }
 
 
-- (BOOL)checkSIPforAppIdentifier:(NSString*)identifier {
-
-    // First available from 10.14 Mojave
-    if (@available(macOS 10.14, *)) {
-        
-//        int c = open("/Library/Application Support/com.apple.TCC/TCC.db", O_RDONLY);
-//        if (c == -1 && (errno == EPERM || errno == EACCES)) {
-//            // no full disk access
-//            return NO;
+//- (BOOL)checkSIPforAppIdentifier:(NSString*)identifier {
+//
+//    // First available from 10.14 Mojave
+//    if (@available(macOS 10.14, *)) {
+//
+////        int c = open("/Library/Application Support/com.apple.TCC/TCC.db", O_RDONLY);
+////        if (c == -1 && (errno == EPERM || errno == EACCES)) {
+////            // no full disk access
+////            return NO;
+////        }
+//
+//        OSStatus status;
+//        NSAppleEventDescriptor *targetAppEventDescriptor;
+//
+//        targetAppEventDescriptor = [NSAppleEventDescriptor descriptorWithBundleIdentifier:identifier];
+//        status = AEDeterminePermissionToAutomateTarget(targetAppEventDescriptor.aeDesc, typeWildCard, typeWildCard, true);
+//
+//        switch (status) {
+//            case -600: //procNotFound
+//                NSLog(@"Not running app with id <%@>", identifier);
+//                break;
+//
+//            case 0: // noErr
+//                NSLog(@"SIP check successfull for app with id <%@>", identifier);
+//                break;
+//
+//            case -1744: // errAEEventWouldRequireUserConsent
+//                // This only appears if you send false for askUserIfNeeded
+//                NSLog(@"User consent required for app with id <%@>", identifier);
+//                break;
+//
+//            case -1743: //errAEEventNotPermitted
+//                NSLog(@"User didn't allow usage for app with id <%@>", identifier);
+//
+//                // Here you should present a dialog with a tutorial on how to activate it manually
+//                // This can be something like
+//                // Go to system preferences > security > privacy
+//                // Choose automation and active [APPNAME] for [APPNAME]
+//
+//                return NO;
+//
+//            default:
+//                break;
 //        }
-
-        OSStatus status;
-        NSAppleEventDescriptor *targetAppEventDescriptor;
-
-        targetAppEventDescriptor = [NSAppleEventDescriptor descriptorWithBundleIdentifier:identifier];
-        status = AEDeterminePermissionToAutomateTarget(targetAppEventDescriptor.aeDesc, typeWildCard, typeWildCard, true);
-
-        switch (status) {
-            case -600: //procNotFound
-                NSLog(@"Not running app with id <%@>", identifier);
-                break;
-
-            case 0: // noErr
-                NSLog(@"SIP check successfull for app with id <%@>", identifier);
-                break;
-
-            case -1744: // errAEEventWouldRequireUserConsent
-                // This only appears if you send false for askUserIfNeeded
-                NSLog(@"User consent required for app with id <%@>", identifier);
-                break;
-
-            case -1743: //errAEEventNotPermitted
-                NSLog(@"User didn't allow usage for app with id <%@>", identifier);
-
-                // Here you should present a dialog with a tutorial on how to activate it manually
-                // This can be something like
-                // Go to system preferences > security > privacy
-                // Choose automation and active [APPNAME] for [APPNAME]
-
-                return NO;
-
-            default:
-                break;
-        }
-    }
-    return YES;
-}
+//    }
+//    return YES;
+//}
 
 
 - (void) alertSystemIntegrityProtection

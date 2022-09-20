@@ -12,7 +12,7 @@
 #import "Helper.h"
 
 #define OPEN_DURATION 0  //.15
-#define CLOSE_DURATION 0 //.1
+#define CLOSE_DURATION 0.3 //.1
 #define POPUP_HEIGHT 78
 #define POPUP_HEIGHT_SMALL 200
 #define POPUP_HEIGHT_CLOSED 76
@@ -155,7 +155,8 @@ static bool ANIMATE = false;
 {
     [super awakeFromNib];
     
-//    ANIMATE = ([Helper getOSVersion] >= 1010 ? NO : YES);
+//    ANIMATE = ([Helper getOSVersion] >= 1015 ? YES : NO); //@available(macOS 10.15, *)
+    ANIMATE = (@available(macOS 10.15, *) ? YES : NO);
     
     // Make a fully skinned panel
     NSPanel *panel = (id)[self window];
@@ -297,7 +298,7 @@ static bool ANIMATE = false;
         
     self.a_backgroundView.arrowX = panelX;
     
-    if (@available(macOS 10.14, *)) {
+    if (@available(macOS 10.15, *)) {
         self.a_backgroundView.arrowX += 8;
     }
 }
@@ -406,12 +407,10 @@ static bool ANIMATE = false;
     if (!ANIMATE) // No animation
     {
         [self locateFrameDataCountSize:panelRect.size];
-        
         [panel setFrame:panelRect display:YES];
         [panel setAlphaValue:1];
     }
-    else
-    {
+    else {
         NSTimeInterval openDuration = OPEN_DURATION;
         
         if ([[NSApp currentEvent] type] == NSLeftMouseDown) {
@@ -485,25 +484,21 @@ static bool ANIMATE = false;
     
     if (!ANIMATE) // No animation
     {
-        //[panel setFrame:statusRect display:NO];
-        
         [self locateFrameDataCountSize:panelRect.size];
-        
         [panel setFrame:panelRect display:YES];
         [panel setAlphaValue:alpha];
     }
-    else
-    {
+    else {
         //@TODO: This line of code is a workaround for locateFrameDataCountSize !!!
         [panel setFrame:statusRect display:NO];
         [self locateFrameDataCountSize:panelRect.size];
-        
+
         [NSAnimationContext beginGrouping];
-        
-        [[NSAnimationContext currentContext] setDuration:OPEN_DURATION];
+
+        [[NSAnimationContext currentContext] setDuration:CLOSE_DURATION];
         [[panel animator] setFrame:panelRect display:YES];
         [[panel animator] setAlphaValue:alpha];
-        
+
         [NSAnimationContext endGrouping];
     }
 }
@@ -520,12 +515,11 @@ static bool ANIMATE = false;
         [self restorePanel:0.0];
         [self close];
     }
-    else
-    {
+    else {
         [NSAnimationContext beginGrouping];
 
         [[NSAnimationContext currentContext] setDuration:CLOSE_DURATION];
-        [[[self window] animator] setAlphaValue:0];
+        [[[self window] animator] setAlphaValue:0.1];
 
         [NSAnimationContext endGrouping];
         
