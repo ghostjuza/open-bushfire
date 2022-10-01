@@ -32,6 +32,7 @@
 "remote_notifications"      = "Notifications";
 "web_page_icons"            = "Webpage Icons";
 "clean_secure_active"       = "Remove Data Secure";
+"log_enabled"               = "Log";
 "update"                    = "Check for Update";
 "ok"                        = "OK";
 "cancel"                    = "Cancel";

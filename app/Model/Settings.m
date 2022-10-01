@@ -22,8 +22,9 @@
 @synthesize CleanReadingList         = _CleanReadingList;
 @synthesize CleanRemoteNotifications = _CleanRemoteNotifications;
 @synthesize CleanMailDownloads       = _CleanMailDownloads;
-@synthesize SipEnabledConfirmed      = _SipEnabledConfirmed;
 
+@synthesize SipEnabledConfirmed      = _SipEnabledConfirmed;
+@synthesize LogEnabled               = _LogEnabled;
 
 + (id)settingsFromDefaults
 {
@@ -54,12 +55,12 @@
         settings.CleanOfflineData   = YES;
         
         settings.SipEnabledConfirmed = NO;
+        settings.LogEnabled          = YES;
 
         // Currently unused !!!
         //
 //        settings.CleanReadingList         = NO;
 //        settings.CleanRemoteNotifications = NO;
-//
 //        settings.CleanMailDownloads = NO;
     }
 
@@ -100,6 +101,7 @@
     [encoder encodeBool:self.CleanOfflineData forKey:@"cleanOfflineData"];
     
     [encoder encodeBool:self.SipEnabledConfirmed forKey:@"confirmedSipEnabled"];
+    [encoder encodeBool:self.LogEnabled forKey:@"logEnabled"];
 
 //    [encoder encodeBool:self.CleanReadingList forKey:@"cleanReadingList"];
 //    [encoder encodeBool:self.CleanRemoteNotifications forKey:@"cleanRemoteNotifications"];
@@ -131,10 +133,10 @@
         self.CleanOfflineData   = [decoder decodeBoolForKey:@"cleanOfflineData"];
         
         self.SipEnabledConfirmed  = [decoder decodeBoolForKey:@"confirmedSipEnabled"];
+        self.LogEnabled           = [decoder decodeBoolForKey:@"logEnabled"];
 
 //        self.CleanReadingList         = [decoder decodeBoolForKey:@"cleanReadingList"];
 //        self.CleanRemoteNotifications = [decoder decodeBoolForKey:@"cleanRemoteNotifications"];
-//
 //        self.CleanMailDownloads = [decoder decodeBoolForKey:@"cleanMailDownloads"];
     }
 

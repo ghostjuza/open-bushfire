@@ -1,6 +1,8 @@
 #import "AuthorizationManager.h"
+#import "Helper.h"
 
 #include <Security/Authorization.h>
+#include <syslog.h>
 
 @implementation AuthorizationManager
 
@@ -14,9 +16,8 @@
 
         OSStatus status = AuthorizationCreate(nil, kAuthorizationEmptyEnvironment, kAuthorizationFlagDefaults, &authorizationRef);
         
-        if (status != errAuthorizationSuccess)
-        {
-            NSLog(@"Error Creating Authorization: %d", status);
+        if (status != errAuthorizationSuccess) {
+            [Helper log:LOG_ERR logMessage:[NSString stringWithFormat:@"Error Creating Authorization: %d", status]];
             return NO;
         }
         
@@ -26,9 +27,8 @@
         
         status = AuthorizationCopyRights(authorizationRef, &rights, nil, flags, nil);
         
-        if (status != errAuthorizationSuccess)
-        {
-            NSLog(@"Error Authorization Unsuccessful: %d", status);
+        if (status != errAuthorizationSuccess) {
+            [Helper log:LOG_ERR logMessage:[NSString stringWithFormat:@"Error Authorization Unsuccessful: %d", status]];
             return NO;
         }
         
@@ -47,9 +47,8 @@
         
         OSStatus status = AuthorizationExecuteWithPrivileges(authorizationRef, tool, kAuthorizationFlagDefaults, args, &pipe);
 
-        if (status != errAuthorizationSuccess)
-        {
-            NSLog(@"Error Create Directory: %d", status);
+        if (status != errAuthorizationSuccess) {
+            [Helper log:LOG_ERR logMessage:[NSString stringWithFormat:@"Error Create Directory: %d", status]];
             return NO;
         }
         
@@ -69,7 +68,7 @@
         OSStatus status = AuthorizationExecuteWithPrivileges(authorizationRef, tool, kAuthorizationFlagDefaults, args, &pipe);
 
         if (status != errAuthorizationSuccess) {
-            NSLog(@"Error remove file: %d", status);
+            [Helper log:LOG_ERR logMessage:[NSString stringWithFormat:@"Error remove file: %d", status]];
             return NO;
         }
 
@@ -85,8 +84,7 @@
         char *mode = "copy";
         char *tool = "/bin/cp";
 
-        if (!asCopy)
-        {
+        if (!asCopy) {
             mode = "move";
             tool = "/bin/mv";
         }
@@ -96,9 +94,8 @@
         
         OSStatus status = AuthorizationExecuteWithPrivileges(authorizationRef, tool, kAuthorizationFlagDefaults, args, &pipe);
         
-        if (status != errAuthorizationSuccess)
-        {
-            NSLog(@"Error %s file: %d", mode, status);
+        if (status != errAuthorizationSuccess) {
+            [Helper log:LOG_ERR logMessage:[NSString stringWithFormat:@"Error %s file: %d", mode, status]];
             return NO;
         }
 
@@ -106,7 +103,7 @@
 
         do {
             #if DEBUG == 1
-                NSLog(@"[DBG] Waiting for %s file: %s %s", mode, (char *)[fromPath UTF8String], (char *)[toPath UTF8String]);
+                [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] Waiting for %s file: %s %s", mode, (char *)[fromPath UTF8String], (char *)[toPath UTF8String]]];
             #endif
             [NSThread sleepForTimeInterval:0.5f]; // Must wait (0.5 sec) until the file is copied/moved !!!
         }
@@ -132,21 +129,17 @@
         
         OSStatus status = AuthorizationExecuteWithPrivileges(authorizationRef, tool, kAuthorizationFlagDefaults, args, &pipe);
         
-        if (status != errAuthorizationSuccess)
-        {
-            NSLog(@"Error Move Directory: %d", status);
+        if (status != errAuthorizationSuccess) {
+            [Helper log:LOG_ERR logMessage:[NSString stringWithFormat:@"Error Move Directory: %d", status]];
             return NO;
         }
 
         NSFileManager *fileManager = [NSFileManager defaultManager];
 
-        do
-        {
+        do {
             #if DEBUG == 1
-            
                 char *mode = "move";
-                NSLog(@"[DBG] Waiting for %s folder: %s %s", mode, (char *)[fromPath UTF8String], (char *)[toPath UTF8String]);
-            
+                [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] Waiting for %s folder: %s %s", mode, (char *)[fromPath UTF8String], (char *)[toPath UTF8String]]];
             #endif
             
             [NSThread sleepForTimeInterval:0.5f]; // Must wait (0.5 sec) until the folder is moved !!!
@@ -158,8 +151,7 @@
 
     + (void) freeAuthorization
     {
-        if (authorizationRef != nil)
-        {
+        if (authorizationRef != nil) {
             AuthorizationFree(authorizationRef, kAuthorizationFlagDestroyRights);
             authorizationRef = nil;
         }

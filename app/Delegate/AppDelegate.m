@@ -4,6 +4,8 @@
 #import "Helper.h"
 #import "Curl.h"
 
+#include <syslog.h>
+
 void *kContextActivePanel = &kContextActivePanel;
 
 @interface AppDelegate()
@@ -78,7 +80,7 @@ static MenubarController *m_staticMenubarController;
     int retVal = system([command cStringUsingEncoding:NSUTF8StringEncoding]);
     
     #if DEBUG == 1
-        NSLog(@"[DBG] Remove quarantine flags <%d>", retVal);
+        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] Remove quarantine flags <%d>", retVal]];
     #endif
     
 #endif
@@ -119,45 +121,46 @@ static MenubarController *m_staticMenubarController;
 //
 - (BOOL) checkSystemIntegrityProtection
 {
-    NSString *logMsg = @"SystemIntegrityProtection status: %@";
+    NSString *logMsg = @"SystemIntegrityProtection status = %@";
 
     if (@available(macOS 10.14, *)) {
         NSString *sipStatus = [Helper runCommand:@"csrutil status"];
         if ([sipStatus rangeOfString:@"disabled"].location == NSNotFound) {
             if (!self.a_settings.SipEnabledConfirmed) {
                 [self alertSystemIntegrityProtection];
-                NSLog(logMsg, @"<enabled>");
+                [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"enabled"]];
             }
             else {
-                NSLog(logMsg, @"<enabled> <confirmed>");
+                [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"enabled, confirmed"]];
             }
             return true;
         }
         
-        NSLog(logMsg, @"<disabled>");
+        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"disabled"]];
+        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"SystemIntegrityProtection is confirmed: %@", (self.a_settings.SipEnabledConfirmed ? @"YES" : @"NO")]];
         return false;
     }
     
-    NSLog(logMsg, @"<not_necessary>");
+    [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"not necessary"]];
     return true;
 }
 
 
 - (BOOL) checkFullDiskAccess
 {
-    NSString *logMsg = @"FullDiskAccess status: %@";
+    NSString *logMsg = @"FullDiskAccess status = %@";
     
     if (@available(macOS 10.14, *)) {
         NSString *cmdResult = [Helper runCommand:@"sqlite3 /Library/Application\\ Support/com.apple.TCC/TCC.db '.tables'"];
         if ([cmdResult length] == 0) {
-            NSLog(logMsg, @"<failed>");
+            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"failed"]];
             [self alertDiskFullAccess];
             return false;
         }
-        NSLog(logMsg, @"<successful>");
+        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"successful"]];
     }
     else {
-        NSLog(logMsg, @"<not_necessary>");
+        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"not necessary"]];
     }
     
     return true;

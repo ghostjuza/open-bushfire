@@ -13,6 +13,7 @@
                 <outlet property="a_btnBurnNow" destination="lEq-uk-aZw" id="KTT-gi-cL1"/>
                 <outlet property="a_btnCleanActive" destination="118" id="151"/>
                 <outlet property="a_btnCleanSecureActive" destination="5cQ-UA-fKA" id="IQu-Fu-kNo"/>
+                <outlet property="a_btnLogEnabled" destination="RGl-7c-V6m" id="1l0-5n-8yw"/>
                 <outlet property="a_btnSettings" destination="87" id="150"/>
                 <outlet property="a_btnSettingsAbout" destination="130" id="149"/>
                 <outlet property="a_btnSettingsQuit" destination="126" id="148"/>
@@ -84,7 +85,7 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <subviews>
                             <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5cQ-UA-fKA" userLabel="Abtn Clean Secure Active">
-                                <rect key="frame" x="11" y="124" width="280" height="18"/>
+                                <rect key="frame" x="11" y="124" width="190" height="18"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="bevel" title="secure_clean" bezelStyle="regularSquare" image="ckbx_default" imagePosition="left" alignment="left" state="on" inset="2" id="2jG-sX-phf" customClass="SettingCheckboxCell">
                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -92,6 +93,17 @@
                                 </buttonCell>
                                 <connections>
                                     <action selector="actionCleanSecureActive:" target="-2" id="HoH-1R-c0q"/>
+                                </connections>
+                            </button>
+                            <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RGl-7c-V6m" userLabel="Abtn Log Active">
+                                <rect key="frame" x="225" y="124" width="80" height="18"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="bevel" title="log_active" bezelStyle="regularSquare" image="ckbx_default" imagePosition="left" alignment="left" state="on" inset="2" id="Usi-7B-cTD" customClass="SettingCheckboxCell">
+                                    <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                    <font key="font" metaFont="cellTitle"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="actionLogEnable:" target="-2" id="Bz5-k1-ghd"/>
                                 </connections>
                             </button>
                             <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="153">
@@ -224,7 +236,7 @@
                         </subviews>
                     </customView>
                     <textField autoresizesSubviews="NO" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="AMe-NO-5sx" userLabel="Tf DataCountSize" propertyAccessControl="none">
-                        <rect key="frame" x="3" y="469" width="298" height="25"/>
+                        <rect key="frame" x="3" y="12" width="298" height="25"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <textFieldCell key="cell" controlSize="mini" allowsUndo="NO" sendsActionOnEndEditing="YES" alignment="center" title="@data_count_size" usesSingleLineMode="YES" id="p7N-9p-bhF">
                             <font key="font" metaFont="systemLight" size="11"/>

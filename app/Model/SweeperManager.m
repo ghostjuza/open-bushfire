@@ -3,6 +3,8 @@
 #import "Settings.h"
 #import "Helper.h"
 
+#include <syslog.h>
+
 @interface SweeperManager()
 
 - (BOOL)m_deleteFile:(NSString *)path secure:(BOOL)secure;
@@ -26,19 +28,17 @@ static NSFileManager *fileManager = nil;
 
 - (void) cleanupWithCompletion:(SweeperManagerBlock)block
 {
-    //[self detectOSVersion];
-
     Settings *settings = [Settings settingsFromDefaults];
     NSString *bfQue    = [Helper generateUuidString];
     NSString *quePath  = [@"/tmp/bfrmque." stringByAppendingString:bfQue];
 
     if (!settings.CleanActive) {
-        NSLog(@"Burn is disabled.");
+        [Helper log:LOG_NOTICE logMessage:@"Burn = disabled"];
         return;
     }
 
     if (![self createQueDirectoryForRemove:quePath]) {
-        NSLog(@"Create cleanup que failed.");
+        [Helper log:LOG_NOTICE logMessage:@"Create cleanup que = failed"];
         return;
     }
 
@@ -47,7 +47,7 @@ static NSFileManager *fileManager = nil;
     dispatch_queue_t queue = dispatch_queue_create("app.bushfire.CleanupQueue", NULL);
     dispatch_group_t group = dispatch_group_create();
 
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
         dispatch_group_async(group, queue, ^{
             
             [Helper detectAndPushCleanUpCounting:settings];
@@ -55,7 +55,7 @@ static NSFileManager *fileManager = nil;
 
             // Start burn ...
             //
-            NSLog(@"Prepare to burn [secure: <%@>]", (burnSecure ? @"YES" : @"NO"));
+            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Prepare to burn = [secure:%@]", (burnSecure ? @"YES" : @"NO")]];
 
             // Always try to burn Bushfire junk files !!!
             //
@@ -70,16 +70,16 @@ static NSFileManager *fileManager = nil;
             (!settings.CleanDownloads ?: [self m_moveToQueDownloads:quePath]);
             (!settings.CleanMailDownloads ?: [self m_moveToQueMailDownloads:quePath]);
             (!settings.CleanCache ?: [self m_moveToQueCache:quePath]);
-            (!settings.CleanOfflineData ?: [self m_moveToQueOfflineData:quePath]);
-
             // if (settings.CleanReadingList) [self m_moveToQueReadingList];
             // if (settings.CleanRemoteNotifications) [self m_moveToQueRemoteNotifications];
             
-
-            if (settings.CleanCookies)
-            {
-                [self m_moveToQueCookies:quePath];
+            if (settings.CleanOfflineData) {
+                [self m_moveToQueOfflineData:quePath];
                 [self m_moveToQueLocalStorage:quePath];
+            }
+            
+            if (settings.CleanCookies) {
+                [self m_moveToQueCookies:quePath];
                 [self m_moveToQueFlashCookies:quePath];
                 //[self m_moveToQueSilverlightCookies:quePath];
 
@@ -88,11 +88,7 @@ static NSFileManager *fileManager = nil;
                 }
             }
 
-            #if DEBUG == 1
-
-                NSLog(@"[DBG] Burn Que: <%@>", bfQue);
-
-            #endif
+            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"QueIdent = %@", bfQue]];
             
             // Burn the Q-Folder ...
             //
@@ -109,7 +105,6 @@ static NSFileManager *fileManager = nil;
         dispatch_release(group);
         
         [[AppDelegate getMenubarController] unsetCleanIcon];
-
     });
 }
 
@@ -124,8 +119,8 @@ static NSFileManager *fileManager = nil;
             
             #if DEBUG == 1
             
-                logMsg = @"[DBG] Try to kill all Safari processes.";
-                NSLog(@"[DBG] %@", cmd);
+                logMsg = @"[DBG] Try to kill all Safari processes";
+                [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] %@", cmd]];
             
             #endif
             
@@ -136,7 +131,7 @@ static NSFileManager *fileManager = nil;
     {
         #if DEBUG == 1
         
-            NSLog(@"[DBG] %@", exception.reason);
+            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] %@", exception.reason]];
         
         #endif
     }
@@ -153,7 +148,7 @@ static NSFileManager *fileManager = nil;
         return true;
     }
 
-    NSLog(@"Create que directory failed.");
+    [Helper log:LOG_ERR logMessage:@"Create que directory failed"];
     return false;
 }
 
@@ -247,30 +242,6 @@ static NSFileManager *fileManager = nil;
         @"Library/Containers/com.apple.Safari/Data/Library/Cookies",
         nil
     ];
-}
-
-- (void) m_moveToQueLocalStorage:(NSString*)quePath
-{
-    NSArray *arrayList = [SweeperManager getLocalStorageList];
-    [self moveToQueByArrayList:arrayList toQuePath:quePath];
-}
-
-+ (NSArray*) getLocalStorageList
-{
-    NSArray *arrayList = [NSArray arrayWithObjects:
-        @"Library/Safari/LastSession.plist",
-        @"Library/Safari/PlugInOrigins.plist",
-        @"Library/Safari/PlugInUpdateInfo.plist",
-        @"Library/WebKit/com.apple.Safari",
-        @"Library/Saved Application State/com.apple.Safari.savedState",
-        @"Library/SyncedPreferences/com.apple.Safari.plist",
-        nil
-    ];
-    
-    arrayList = [Helper appendObjectsFromDirectory:@"Library/Safari/LocalStorage/" excludePattern:@"safari-extension_" toArrayList:arrayList];
-    arrayList = [Helper appendObjectsFromDirectory:@"Library/Safari/Databases/" excludePattern:@"safari-extension_" toArrayList:arrayList];
-    
-    return arrayList;
 }
 
 - (void) m_moveToQueFlashCookies:(NSString*)quePath
@@ -546,6 +517,26 @@ static NSFileManager *fileManager = nil;
     ];
 }
 
+- (void) m_moveToQueLocalStorage:(NSString*)quePath
+{
+    NSArray *arrayList = [SweeperManager getLocalStorageList];
+    [self moveToQueByArrayList:arrayList toQuePath:quePath];
+}
+
++ (NSArray*) getLocalStorageList
+{
+    NSArray *arrayList = [NSArray arrayWithObjects:
+        // [Helper getOSVersion] >= 1200
+        @"Library/Containers/com.apple.Safari/Data/Library/HTTPStorages/com.apple.Safari",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/LocalStorage",
+        nil
+    ];
+    
+    arrayList = [Helper appendObjectsFromDirectory:@"Library/Safari/LocalStorage/" excludePattern:@"safari-extension_" toArrayList:arrayList];
+    
+    return arrayList;
+}
+
 - (void) m_moveToQueOfflineData:(NSString*)quePath
 {
     NSArray *arrayList = [SweeperManager getOfflineDataList];
@@ -554,16 +545,23 @@ static NSFileManager *fileManager = nil;
 
 + (NSArray*) getOfflineDataList
 {
-    return [NSArray arrayWithObjects:
-        @"Library/Safari/LocalStorage",
-        
+    NSArray *arrayList = [NSArray arrayWithObjects:
+        @"Library/Safari/LastSession.plist",
+        @"Library/Safari/PlugInOrigins.plist",
+        @"Library/Safari/PlugInUpdateInfo.plist",
+        @"Library/WebKit/com.apple.Safari",
+        @"Library/Saved Application State/com.apple.Safari.savedState",
+        @"Library/SyncedPreferences/com.apple.Safari.plist",
+                          
         // [Helper getOSVersion] >= 1200
-        @"Library/Containers/com.apple.Safari/Data/Library/HTTPStorages/com.apple.Safari",
-        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/LocalStorage",
         @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics",
         @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/Default",
         nil
     ];
+    
+    arrayList = [Helper appendObjectsFromDirectory:@"Library/Safari/Databases/" excludePattern:@"safari-extension_" toArrayList:arrayList];
+    
+    return arrayList;
 }
 
 //- (void)m_cleanReadingList

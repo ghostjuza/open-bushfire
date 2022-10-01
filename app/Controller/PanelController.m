@@ -11,6 +11,8 @@
 #import "SweeperManager.h"
 #import "Helper.h"
 
+#include <syslog.h>
+
 #define OPEN_DURATION 0  //.15
 #define CLOSE_DURATION 0.3 //.1
 #define POPUP_HEIGHT 78
@@ -49,6 +51,7 @@ enum {
 @property (nonatomic, retain) IBOutlet NSButton *a_btnUpdateCheck;
 @property (nonatomic, retain) IBOutlet NSButton *a_chkStartup;
 @property (nonatomic, retain) IBOutlet NSButton *a_btnCleanSecureActive;
+@property (nonatomic, retain) IBOutlet NSButton *a_btnLogEnabled;
 @property (nonatomic, retain) IBOutlet NSTextField *TfDataCountSize;
 
 // 10.6 workaround 
@@ -87,6 +90,7 @@ enum {
 @synthesize a_btnBurnNow            = _a_btnBurnNow;
 @synthesize a_btnCleanActive        = _a_btnCleanActive;
 @synthesize a_btnCleanSecureActive  = _a_btnCleanSecureActive;
+@synthesize a_btnLogEnabled         = _a_btnLogEnabled;
 @synthesize a_btnSettingsAbout      = _a_btnSettingsAbout;
 @synthesize a_btnSettingsQuit       = _a_btnSettingsQuit;
 @synthesize a_chkStartup            = _a_chkStartup;
@@ -141,6 +145,7 @@ static bool ANIMATE = false;
     [_a_btnBurnNow release];
     [_a_btnCleanActive release];
     [_a_btnCleanSecureActive release];
+    [_a_btnLogEnabled release];
     [_a_btnSettingsAbout release];
     [_a_btnSettingsQuit release];
     [_a_chkStartup release];
@@ -197,6 +202,9 @@ static bool ANIMATE = false;
     
     [self.a_btnCleanSecureActive setIntValue:self.a_settings.CleanSecureActive];
     [self.a_btnCleanSecureActive setTitle:NSLocalizedString(@"clean_secure_active", nil)];
+    
+    [self.a_btnLogEnabled setIntValue:self.a_settings.LogEnabled];
+    [self.a_btnLogEnabled setTitle:NSLocalizedString(@"log_enabled", nil)];
     
     [self.a_btnCleanActive setIntValue:self.a_settings.CleanActive];
     [self.a_btnCleanActive setTitle:NSLocalizedString(@"clean_active", nil)];
@@ -742,8 +750,7 @@ static bool ANIMATE = false;
     
     if ([alert runModal] == NSAlertFirstButtonReturn)
     {
-        NSLog(@"%@", @"User click: Burn Now");
-        
+        [Helper log:LOG_NOTICE logMessage:@"User click: Burn Now"];
         SweeperManager *sweeperManager = [[SweeperManager alloc] init];
         [sweeperManager cleanupWithCompletion:nil];
         [sweeperManager release];
@@ -773,7 +780,7 @@ static bool ANIMATE = false;
             NSRect statusRect = [self statusRectForWindow:panel];
             NSRect panelRect  = [panel frame];
             
-            NSLog(@"Icon is at %@\n\tMenu is on screen %@\n\tWill be animated to %@", NSStringFromRect(statusRect), NSStringFromRect(screenRect), NSStringFromRect(panelRect));
+            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Icon is at %@\n\tMenu is on screen %@\n\tWill be animated to %@", NSStringFromRect(statusRect), NSStringFromRect(screenRect), NSStringFromRect(panelRect)]];
         }
     }
     
@@ -823,6 +830,18 @@ static bool ANIMATE = false;
     self.a_settings.CleanSecureActive = !self.a_settings.CleanSecureActive;
     [self.a_settings saveSettings];
     [self.a_btnCleanSecureActive setState:self.a_settings.CleanSecureActive];
+}
+
+
+/**
+ toggle global settings sweep
+ @param sender of nsbutton
+ */
+- (IBAction)actionLogEnable:(id)sender
+{
+    self.a_settings.LogEnabled = !self.a_settings.LogEnabled;
+    [self.a_settings saveSettings];
+    [self.a_btnLogEnabled setState:self.a_settings.LogEnabled];
 }
 
 

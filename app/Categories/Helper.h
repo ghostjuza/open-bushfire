@@ -34,6 +34,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (int)pushCleanUpCounting:(unsigned long long)cleanupSize cleanupCount:(NSUInteger)cleanupCount;
 + (void)detectDataCountAndSize:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize;
 + (void)detectAndPushCleanUpCounting:(Settings*)settings;
++ (void)log:(int)logLevel logMessage:(NSString*)logMessage;
 
 //+ (void) detectDataCountAndSize:(NSArray*)spyList
 //    objectCountCurrent:(nullable NSUInteger*)objectCountCurrent
