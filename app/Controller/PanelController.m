@@ -11,8 +11,10 @@
 #import "SweeperManager.h"
 #import "Helper.h"
 
+#include <syslog.h>
+
 #define OPEN_DURATION 0  //.15
-#define CLOSE_DURATION 0 //.1
+#define CLOSE_DURATION 0.3 //.1
 #define POPUP_HEIGHT 78
 #define POPUP_HEIGHT_SMALL 200
 #define POPUP_HEIGHT_CLOSED 76
@@ -32,8 +34,8 @@ enum {
     SettingsModeReadingList         = 9,
     SettingsModeRemoteNotifications = 10,
     SettingsModeMailDownloads       = 11,
-    SettingsModeWebPageIcons        = 12
-//    SettingsModeOfflineData         = 13
+    SettingsModeWebPageIcons        = 12,
+    SettingsModeOfflineData         = 13
 } SettingsMode;
 
 
@@ -49,6 +51,7 @@ enum {
 @property (nonatomic, retain) IBOutlet NSButton *a_btnUpdateCheck;
 @property (nonatomic, retain) IBOutlet NSButton *a_chkStartup;
 @property (nonatomic, retain) IBOutlet NSButton *a_btnCleanSecureActive;
+@property (nonatomic, retain) IBOutlet NSButton *a_btnLogEnabled;
 @property (nonatomic, retain) IBOutlet NSTextField *TfDataCountSize;
 
 // 10.6 workaround 
@@ -87,6 +90,7 @@ enum {
 @synthesize a_btnBurnNow            = _a_btnBurnNow;
 @synthesize a_btnCleanActive        = _a_btnCleanActive;
 @synthesize a_btnCleanSecureActive  = _a_btnCleanSecureActive;
+@synthesize a_btnLogEnabled         = _a_btnLogEnabled;
 @synthesize a_btnSettingsAbout      = _a_btnSettingsAbout;
 @synthesize a_btnSettingsQuit       = _a_btnSettingsQuit;
 @synthesize a_chkStartup            = _a_chkStartup;
@@ -117,7 +121,7 @@ static bool ANIMATE = false;
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"forms",nil), @"title", [NSNumber numberWithInt:SettingsModeForms], @"tag", nil],
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"location",nil), @"title", [NSNumber numberWithInt:SettingsModeLocation], @"tag", nil],
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"web_page_icons",nil), @"title", [NSNumber numberWithInt:SettingsModeWebPageIcons], @"tag", nil],
-            //[NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"offline_data",nil), @"title", [NSNumber numberWithInt:SettingsModeWebPageIcons], @"tag", nil],
+            [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"offline_data",nil), @"title", [NSNumber numberWithInt:SettingsModeOfflineData], @"tag", nil],
 
             //[NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"downloads_mail",nil), @"title", [NSNumber numberWithInt:SettingsModeMailDownloads], @"tag", nil],
             //[NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"reading_list",nil), @"title", [NSNumber numberWithInt:SettingsModeReadingList], @"tag", nil],
@@ -141,6 +145,7 @@ static bool ANIMATE = false;
     [_a_btnBurnNow release];
     [_a_btnCleanActive release];
     [_a_btnCleanSecureActive release];
+    [_a_btnLogEnabled release];
     [_a_btnSettingsAbout release];
     [_a_btnSettingsQuit release];
     [_a_chkStartup release];
@@ -155,7 +160,8 @@ static bool ANIMATE = false;
 {
     [super awakeFromNib];
     
-//    ANIMATE = ([Helper getOSVersion] >= 1010 ? NO : YES);
+//    ANIMATE = ([Helper getOSVersion] >= 1015 ? YES : NO); //@available(macOS 10.15, *)
+    ANIMATE = (@available(macOS 10.15, *) ? YES : NO);
     
     // Make a fully skinned panel
     NSPanel *panel = (id)[self window];
@@ -196,6 +202,9 @@ static bool ANIMATE = false;
     
     [self.a_btnCleanSecureActive setIntValue:self.a_settings.CleanSecureActive];
     [self.a_btnCleanSecureActive setTitle:NSLocalizedString(@"clean_secure_active", nil)];
+    
+    [self.a_btnLogEnabled setIntValue:self.a_settings.LogEnabled];
+    [self.a_btnLogEnabled setTitle:NSLocalizedString(@"log_enabled", nil)];
     
     [self.a_btnCleanActive setIntValue:self.a_settings.CleanActive];
     [self.a_btnCleanActive setTitle:NSLocalizedString(@"clean_active", nil)];
@@ -296,6 +305,10 @@ static bool ANIMATE = false;
     CGFloat panelX    = statusX - NSMinX(panelRect);
         
     self.a_backgroundView.arrowX = panelX;
+    
+    if (@available(macOS 10.15, *)) {
+        self.a_backgroundView.arrowX += 8;
+    }
 }
 
 
@@ -402,12 +415,10 @@ static bool ANIMATE = false;
     if (!ANIMATE) // No animation
     {
         [self locateFrameDataCountSize:panelRect.size];
-        
         [panel setFrame:panelRect display:YES];
         [panel setAlphaValue:1];
     }
-    else
-    {
+    else {
         NSTimeInterval openDuration = OPEN_DURATION;
         
         if ([[NSApp currentEvent] type] == NSLeftMouseDown) {
@@ -481,25 +492,21 @@ static bool ANIMATE = false;
     
     if (!ANIMATE) // No animation
     {
-        //[panel setFrame:statusRect display:NO];
-        
         [self locateFrameDataCountSize:panelRect.size];
-        
         [panel setFrame:panelRect display:YES];
         [panel setAlphaValue:alpha];
     }
-    else
-    {
+    else {
         //@TODO: This line of code is a workaround for locateFrameDataCountSize !!!
         [panel setFrame:statusRect display:NO];
         [self locateFrameDataCountSize:panelRect.size];
-        
+
         [NSAnimationContext beginGrouping];
-        
-        [[NSAnimationContext currentContext] setDuration:OPEN_DURATION];
+
+        [[NSAnimationContext currentContext] setDuration:CLOSE_DURATION];
         [[panel animator] setFrame:panelRect display:YES];
         [[panel animator] setAlphaValue:alpha];
-        
+
         [NSAnimationContext endGrouping];
     }
 }
@@ -516,12 +523,11 @@ static bool ANIMATE = false;
         [self restorePanel:0.0];
         [self close];
     }
-    else
-    {
+    else {
         [NSAnimationContext beginGrouping];
 
         [[NSAnimationContext currentContext] setDuration:CLOSE_DURATION];
-        [[[self window] animator] setAlphaValue:0];
+        [[[self window] animator] setAlphaValue:0.1];
 
         [NSAnimationContext endGrouping];
         
@@ -597,9 +603,9 @@ static bool ANIMATE = false;
             return self.a_settings.CleanWebPageIcons;
             break;
 
-//        case SettingsModeOfflineData:
-//            return self.a_settings.CleanOfflineData;
-//            break;
+        case SettingsModeOfflineData:
+            return self.a_settings.CleanOfflineData;
+            break;
     }
 
     return NO;
@@ -666,9 +672,9 @@ static bool ANIMATE = false;
             self.a_settings.CleanWebPageIcons = ![self isSettingActiveForRow:button.tag];
             break;
 
-//        case SettingsModeOfflineData:
-//            self.a_settings.CleanOfflineData = ![self isSettingActiveForRow:button.tag];
-//            break;
+        case SettingsModeOfflineData:
+            self.a_settings.CleanOfflineData = ![self isSettingActiveForRow:button.tag];
+            break;
     }
 
     [self.a_settings saveSettings];
@@ -705,8 +711,14 @@ static bool ANIMATE = false;
     } 
     else
     {
-        dispatch_async(dispatch_get_current_queue(), ^
-        {
+        //if (!isMyQueue()) {
+        //    self.myQueue = dispatch_queue_create("QueDataCountAndSize", DISPATCH_QUEUE_SERIAL);
+        //}
+        //dispatch_queue_set_specific(self.myQueue, @selector(myQueue), @selector(myQueue), NULL);
+        
+        // dispatch_get_current_queue | dispatch_get_main_queue
+        //dispatch_async(self.myQueue, ^ {
+        dispatch_async(dispatch_get_main_queue(), ^ {
             [Helper detectDataCountAndSize:self.a_settings targetTextField:self.TfDataCountSize];
             [self restorePanel:1.0];
         });
@@ -738,8 +750,7 @@ static bool ANIMATE = false;
     
     if ([alert runModal] == NSAlertFirstButtonReturn)
     {
-        NSLog(@"%@", @"User click: Burn Now");
-        
+        [Helper log:LOG_NOTICE logMessage:@"User click: Burn Now"];
         SweeperManager *sweeperManager = [[SweeperManager alloc] init];
         [sweeperManager cleanupWithCompletion:nil];
         [sweeperManager release];
@@ -769,7 +780,7 @@ static bool ANIMATE = false;
             NSRect statusRect = [self statusRectForWindow:panel];
             NSRect panelRect  = [panel frame];
             
-            NSLog(@"Icon is at %@\n\tMenu is on screen %@\n\tWill be animated to %@", NSStringFromRect(statusRect), NSStringFromRect(screenRect), NSStringFromRect(panelRect));
+            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Icon is at %@\n\tMenu is on screen %@\n\tWill be animated to %@", NSStringFromRect(statusRect), NSStringFromRect(screenRect), NSStringFromRect(panelRect)]];
         }
     }
     
@@ -789,12 +800,25 @@ static bool ANIMATE = false;
     [self.a_btnCleanActive setState:self.a_settings.CleanActive];
     [self.a_containerView setHidden:YES];
     
-    dispatch_async(dispatch_get_current_queue(), ^
-    {
+    //if (!isMyQueue()) {
+    //    self.myQueue = dispatch_queue_create("QueDataCountAndSize", DISPATCH_QUEUE_SERIAL);
+    //}
+    //dispatch_queue_set_specific(self.myQueue, @selector(myQueue), @selector(myQueue), NULL);
+    
+    // dispatch_get_current_queue | dispatch_get_main_queue
+    //dispatch_async(self.myQueue, ^{
+    dispatch_async(dispatch_get_main_queue(), ^ {
         [Helper detectDataCountAndSize:self.a_settings targetTextField:self.TfDataCountSize];
         [self restorePanel:1.0];
     });
 }
+
+
+// https://github.com/inkling/Subliminal/issues/164
+//BOOL isMyQueue(void)
+//{
+//    return dispatch_get_specific(@selector(myQueue)) != NULL;
+//}
 
 
 /**
@@ -806,6 +830,18 @@ static bool ANIMATE = false;
     self.a_settings.CleanSecureActive = !self.a_settings.CleanSecureActive;
     [self.a_settings saveSettings];
     [self.a_btnCleanSecureActive setState:self.a_settings.CleanSecureActive];
+}
+
+
+/**
+ toggle global settings sweep
+ @param sender of nsbutton
+ */
+- (IBAction)actionLogEnable:(id)sender
+{
+    self.a_settings.LogEnabled = !self.a_settings.LogEnabled;
+    [self.a_settings saveSettings];
+    [self.a_btnLogEnabled setState:self.a_settings.LogEnabled];
 }
 
 
@@ -851,6 +887,7 @@ static bool ANIMATE = false;
 - (IBAction)actionUpdateCheck:(id)sender
 {
     [[[[SUUpdater alloc] init] autorelease] checkForUpdates:nil];
+    //[[[SPUStandardUpdaterController alloc] autorelease] checkForUpdates:nil]; // SPUUpdater
 }
 
 @end

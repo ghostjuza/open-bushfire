@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="21225" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14490.70"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21225"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -26,12 +26,12 @@
             <windowStyleMask key="styleMask" utility="YES" nonactivatingPanel="YES"/>
             <windowCollectionBehavior key="collectionBehavior" ignoresCycle="YES"/>
             <rect key="contentRect" x="553" y="267" width="298" height="235"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1028"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="3008" height="1667"/>
             <view key="contentView" id="6" customClass="AboutView">
                 <rect key="frame" x="0.0" y="0.0" width="298" height="235"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="27">
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="27">
                         <rect key="frame" x="0.0" y="143" width="298" height="51"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <textFieldCell key="cell" controlSize="mini" sendsActionOnEndEditing="YES" alignment="center" title="@app_name" id="28">
@@ -40,7 +40,7 @@
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="48">
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="48">
                         <rect key="frame" x="1" y="102" width="298" height="40"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <textFieldCell key="cell" controlSize="mini" sendsActionOnEndEditing="YES" alignment="center" title="@about_version" id="50">
@@ -49,7 +49,7 @@
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="58">
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="58">
                         <rect key="frame" x="0.0" y="45" width="298" height="36"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <textFieldCell key="cell" controlSize="mini" sendsActionOnEndEditing="YES" alignment="center" title="about_copyright" id="60">
@@ -58,7 +58,7 @@
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <button id="490">
+                    <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="490">
                         <rect key="frame" x="3" y="210" width="18" height="20"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="bevel" bezelStyle="rounded" image="btn_close_about" imagePosition="overlaps" alignment="center" alternateImage="btn_close_about_pressed" controlSize="mini" imageScaling="proportionallyDown" inset="2" id="491">
@@ -72,7 +72,7 @@ Gw
                             <action selector="actionClose:" target="-2" id="493"/>
                         </connections>
                     </button>
-                    <button id="mhI-DR-K8n">
+                    <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mhI-DR-K8n">
                         <rect key="frame" x="263" y="0.0" width="33" height="37"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="bevel" bezelStyle="rounded" image="paypal-donate-btn" imagePosition="overlaps" alignment="center" controlSize="mini" imageScaling="proportionallyDown" inset="2" id="S6g-Vr-CtL">
@@ -86,7 +86,7 @@ Gw
                             <action selector="actionOpenDonate:" target="-2" id="ZSF-Qg-oFy"/>
                         </connections>
                     </button>
-                    <button id="429">
+                    <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="429">
                         <rect key="frame" x="20" y="8" width="20" height="20"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="bevel" bezelStyle="regularSquare" image="btn_website" imagePosition="overlaps" alignment="center" imageScaling="axesIndependently" inset="2" id="430">
@@ -97,7 +97,7 @@ Gw
                             <action selector="actionOpenSite:" target="-2" id="481"/>
                         </connections>
                     </button>
-                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="hze-MI-bl0">
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hze-MI-bl0">
                         <rect key="frame" x="181" y="8" width="80" height="21"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <textFieldCell key="cell" controlSize="mini" sendsActionOnEndEditing="YES" alignment="right" title="@donate" id="ZbT-QX-ICk">
@@ -106,7 +106,7 @@ Gw
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <button id="HpW-XX-7eK" userLabel="Btn ForkMe">
+                    <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="HpW-XX-7eK" userLabel="Btn ForkMe">
                         <rect key="frame" x="50" y="8" width="20" height="20"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="bevel" bezelStyle="regularSquare" image="btn_forkme" imagePosition="overlaps" alignment="center" imageScaling="axesIndependently" inset="2" id="6JI-v9-hga">
@@ -117,7 +117,7 @@ Gw
                             <action selector="actionOpenForkMe:" target="-2" id="ho4-0v-kJb"/>
                         </connections>
                     </button>
-                    <button id="ZdX-ft-E64" userLabel="Btn License">
+                    <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ZdX-ft-E64" userLabel="Btn License">
                         <rect key="frame" x="79" y="9" width="20" height="20"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="bevel" bezelStyle="regularSquare" image="btn_osi" imagePosition="overlaps" alignment="center" imageScaling="axesIndependently" inset="2" id="fBt-wO-2bS">
@@ -143,6 +143,6 @@ Gw
         <image name="btn_forkme" width="20" height="20"/>
         <image name="btn_osi" width="20" height="20"/>
         <image name="btn_website" width="20" height="20"/>
-        <image name="paypal-donate-btn" width="93" height="93"/>
+        <image name="paypal-donate-btn" width="92.5" height="92.5"/>
     </resources>
 </document>

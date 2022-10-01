@@ -97,7 +97,6 @@
  */
 - (void)setArrowX:(NSInteger)value
 {
-    
     _arrowX = value;
     [self setNeedsDisplay:YES];
 }

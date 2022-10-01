@@ -17,7 +17,7 @@
 "data_count_size_detect"    = "...";
 "start_logon"               = "Bei Anmeldung starten";
 "clean_active"              = "Safari";
-"cache"                     = "Cache + Lokaler Speicher";
+"cache"                     = "Cache";
 "cookies"                   = "Cookies";
 "zombie_cookies"            = "~ Zombie-Cookies";
 "preview"                   = "Seitenvorschaubilder";
@@ -32,6 +32,7 @@
 "remote_notifications"      = "Mitteilungen";
 "web_page_icons"            = "Webseiten Icons";
 "clean_secure_active"       = "Daten sicher entfernen";
+"log_enabled"               = "Log";
 "update"                    = "Softwareaktualisierung";
 "ok"                        = "OK";
 "cancel"                    = "Abbrechen";
