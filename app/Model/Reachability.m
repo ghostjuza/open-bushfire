@@ -4,30 +4,30 @@
 #import <arpa/inet.h>
 #import <ifaddrs.h>
 #import <netdb.h>
+#import <syslog.h>
 
 #import <CoreFoundation/CoreFoundation.h>
-
 #import "Reachability.h"
+#import "Helper.h"
 
 #define kShouldPrintReachabilityFlags 0
 
-static void PrintReachabilityFlags(SCNetworkReachabilityFlags    flags, const char* comment)
+static void PrintReachabilityFlags(SCNetworkReachabilityFlags flags, const char* comment)
 {
-#if kShouldPrintReachabilityFlags
-	
-    NSLog(@"Reachability Flag Status: %c%c %c%c%c%c%c%c%c %s\n",
-			(flags & kSCNetworkReachabilityFlagsIsWWAN)				  ? 'W' : '-',
-			(flags & kSCNetworkReachabilityFlagsReachable)            ? 'R' : '-',
-			(flags & kSCNetworkReachabilityFlagsTransientConnection)  ? 't' : '-',
-			(flags & kSCNetworkReachabilityFlagsConnectionRequired)   ? 'c' : '-',
-			(flags & kSCNetworkReachabilityFlagsConnectionOnTraffic)  ? 'C' : '-',
-			(flags & kSCNetworkReachabilityFlagsInterventionRequired) ? 'i' : '-',
-			(flags & kSCNetworkReachabilityFlagsConnectionOnDemand)   ? 'D' : '-',
-			(flags & kSCNetworkReachabilityFlagsIsLocalAddress)       ? 'l' : '-',
-			(flags & kSCNetworkReachabilityFlagsIsDirect)             ? 'd' : '-',
-			comment
-			);
-#endif
+    #if kShouldPrintReachabilityFlags
+    [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Reachability Flag Status: %c%c %c%c%c%c%c%c%c %s\n",
+        (flags & kSCNetworkReachabilityFlagsIsWWAN)               ? 'W' : '-',
+        (flags & kSCNetworkReachabilityFlagsReachable)            ? 'R' : '-',
+        (flags & kSCNetworkReachabilityFlagsTransientConnection)  ? 't' : '-',
+        (flags & kSCNetworkReachabilityFlagsConnectionRequired)   ? 'c' : '-',
+        (flags & kSCNetworkReachabilityFlagsConnectionOnTraffic)  ? 'C' : '-',
+        (flags & kSCNetworkReachabilityFlagsInterventionRequired) ? 'i' : '-',
+        (flags & kSCNetworkReachabilityFlagsConnectionOnDemand)   ? 'D' : '-',
+        (flags & kSCNetworkReachabilityFlagsIsLocalAddress)       ? 'l' : '-',
+        (flags & kSCNetworkReachabilityFlagsIsDirect)             ? 'd' : '-',
+        comment
+    ]];
+    #endif
 }
 
 
