@@ -24,6 +24,7 @@
 @synthesize CleanMailDownloads       = _CleanMailDownloads;
 
 @synthesize SipEnabledConfirmed      = _SipEnabledConfirmed;
+@synthesize SipUnknownConfirmed      = _SipUnknownConfirmed;
 @synthesize LogEnabled               = _LogEnabled;
 
 + (id)settingsFromDefaults
@@ -55,6 +56,8 @@
         settings.CleanOfflineData   = YES;
         
         settings.SipEnabledConfirmed = NO;
+        settings.SipUnknownConfirmed = NO;
+        
         settings.LogEnabled          = YES;
 
         // Currently unused !!!
@@ -101,6 +104,8 @@
     [encoder encodeBool:self.CleanOfflineData forKey:@"cleanOfflineData"];
     
     [encoder encodeBool:self.SipEnabledConfirmed forKey:@"confirmedSipEnabled"];
+    [encoder encodeBool:self.SipUnknownConfirmed forKey:@"confirmedSipUnknown"];
+    
     [encoder encodeBool:self.LogEnabled forKey:@"logEnabled"];
 
 //    [encoder encodeBool:self.CleanReadingList forKey:@"cleanReadingList"];
@@ -133,6 +138,8 @@
         self.CleanOfflineData   = [decoder decodeBoolForKey:@"cleanOfflineData"];
         
         self.SipEnabledConfirmed  = [decoder decodeBoolForKey:@"confirmedSipEnabled"];
+        self.SipUnknownConfirmed  = [decoder decodeBoolForKey:@"confirmedSipUnknown"];
+        
         self.LogEnabled           = [decoder decodeBoolForKey:@"logEnabled"];
 
 //        self.CleanReadingList         = [decoder decodeBoolForKey:@"cleanReadingList"];

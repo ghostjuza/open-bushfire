@@ -35,6 +35,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)detectDataCountAndSize:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize;
 + (void)detectAndPushCleanUpCounting:(Settings*)settings;
 + (void)log:(int)logLevel logMessage:(NSString*)logMessage;
++ (bool)inString:(NSString*)haystack needle:(NSString*)needle;
 
 //+ (void) detectDataCountAndSize:(NSArray*)spyList
 //    objectCountCurrent:(nullable NSUInteger*)objectCountCurrent

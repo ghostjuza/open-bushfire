@@ -40,9 +40,13 @@
 "error_no_connection_long"  = "Please make sure, you have a working internet connection.";
 "action_burn_now"           = "Delete Safari data now";
 "action_burn_now_long"      = "Bushfire deletes all selected Safari data during operation, the display in Safari may be different!";
+"alert_fda"                 = "Access to some Safari Data was denied!";
+"alert_fda_long"            = "Please add Bushfire to the App-List:\nSystem Preferences > Security & Privacy > Privacy > Full Disk Access.";
+"alert_sip_unknown"         = "System Integrity Protection is unknown!";
+"alert_sip_unknown_long"    = "This could affect the functionality of Bushfire.\n
+You can set the status clearly:\nReboot in Recovery-Mode > open Terminal.app > type 'csrutil enable' or 'csrutil disable' > restart.\n
+If the System Integrity Protection remains unchanged or is enabled, Bushfire must be added to the App-List for Full Disk Access.";
 "alert_sip"                 = "System Integrity Protection is enabled!";
 "alert_sip_long"            = "This could affect the functionality of Bushfire.";
 "roger_that"                = "Understood";
 "dont_show_again"           = "Don't show again";
-"alert_fda"                 = "Access to some Safari Data was denied!";
-"alert_fda_long"            = "Please add Bushfire to the App-List:\nSystem Preferences > Security & Privacy > Privacy > Full Disk Access.";

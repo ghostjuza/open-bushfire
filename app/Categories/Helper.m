@@ -49,6 +49,11 @@ static NSFileManager *fileManager = nil;
     return (clearFlags == (NSShiftKeyMask | NSAlternateKeyMask | NSCommandKeyMask));
 }
 
++ (bool) inString:(NSString*)haystack needle:(NSString*)needle
+{
+    return !([haystack rangeOfString:needle].location == NSNotFound);
+}
+
 + (NSString*) getBundleVersion
 {
     return [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
@@ -139,8 +144,7 @@ static NSFileManager *fileManager = nil;
     
     if (fileList) 
     {
-        for (int index = 0; index < fileList.count; index++)
-        {
+        for (int index = 0; index < fileList.count; index++) {
             NSString *file = [fileList objectAtIndex:index];
             
             if ([pattern isNotEqualTo:nil] && [file rangeOfString:pattern].location != NSNotFound) continue;
