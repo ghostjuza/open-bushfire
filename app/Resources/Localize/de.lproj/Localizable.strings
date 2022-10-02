@@ -40,9 +40,13 @@
 "error_no_connection_long"  = "Es besteht keine Verbindung zum Internet.";
 "action_burn_now"           = "Safari Daten jetzt löschen";
 "action_burn_now_long"      = "Bushfire löscht alle gewählten Safari Daten im laufenden Betrieb, die Anzeige in Safari kann abweichend sein!";
+"alert_fda"                 = "Der Zugriff auf einige Safari-Daten wurde verweigert!";
+"alert_fda_long"            = "Bitte füge Bushfire zur App-Liste hinzu:\nSystemeinstellungen > Sicherheit > Datenschutz > Festplattenvollzugriff.";
+"alert_sip_unknown"         = "Der Systemintegritätsschutz ist unbestimmt!";
+"alert_sip_unknown_long"    = "Dadurch könnte die Funktionsfähigkeit von Bushfire beeinträchtigt sein.\n
+Du kannst den Status eindeutig festlegen:\nReboot im Recovery-Modus > öffne Terminal.app > tippe 'csrutil enable' oder 'csrutil disable' > Neustart.\n
+Wenn der Systemintegritätsschutz unverändert bleibt oder aktiviert wird (enable) muss Bushfire zur App-Liste für Festplattenvollzugriff hinzugefügt werden.";
 "alert_sip"                 = "Der Systemintegritätsschutz ist aktiv!";
 "alert_sip_long"            = "Dadurch könnte die Funktionsfähigkeit von Bushfire beeinträchtigt sein.";
 "roger_that"                = "Verstanden";
 "dont_show_again"           = "Nicht mehr anzeigen";
-"alert_fda"                 = "Der Zugriff auf einige Safari-Daten wurde verweigert!";
-"alert_fda_long"            = "Bitte füge Bushfire zur App-Liste hinzu:\nSystemeinstellungen > Sicherheit > Datenschutz > Festplattenvollzugriff.";

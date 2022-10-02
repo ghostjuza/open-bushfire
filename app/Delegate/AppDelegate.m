@@ -121,46 +121,59 @@ static MenubarController *m_staticMenubarController;
 //
 - (BOOL) checkSystemIntegrityProtection
 {
-    NSString *logMsg = @"SystemIntegrityProtection status = %@";
-
-    if (@available(macOS 10.14, *)) {
+    if (@available(macOS 10.14, *))
+    {
         NSString *sipStatus = [Helper runCommand:@"csrutil status"];
-        if ([sipStatus rangeOfString:@"disabled"].location == NSNotFound) {
+        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Detect %@", sipStatus]];
+        bool isProtected = true;
+        bool isSipUnknown = [Helper inString:sipStatus needle:@"unknown ("];
+        
+        if (!isSipUnknown && [Helper inString:sipStatus needle:@"enabled"]) {
+            [Helper log:LOG_NOTICE logMessage:@"In SIP status condition: enabled"];
             if (!self.a_settings.SipEnabledConfirmed) {
                 [self alertSystemIntegrityProtection];
-                [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"enabled"]];
             }
-            else {
-                [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"enabled, confirmed"]];
+        }
+        else if (!isSipUnknown && [Helper inString:sipStatus needle:@"disabled"]) {
+            [Helper log:LOG_NOTICE logMessage:@"In SIP status condition: disabled"];
+            isProtected = false;
+            self.a_settings.SipUnknownConfirmed = self.a_settings.SipEnabledConfirmed = NO;
+            [self.a_settings saveSettings];
+        }
+        else { // unknown
+            [Helper log:LOG_NOTICE logMessage:@"In SIP status condition: unknown"];
+            if (!self.a_settings.SipUnknownConfirmed) {
+                [self alertSystemIntegrityProtectionUnknown];
             }
-            return true;
         }
         
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"disabled"]];
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"SystemIntegrityProtection is confirmed: %@", (self.a_settings.SipEnabledConfirmed ? @"YES" : @"NO")]];
-        return false;
+        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Status System Integrity Protection 'enabled' is confirmed: %@", (self.a_settings.SipEnabledConfirmed ? @"YES" : @"NO")]];
+        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Status System Integrity Protection 'unknown (custom configuration)' is confirmed: %@", (self.a_settings.SipUnknownConfirmed ? @"YES" : @"NO")]];
+        
+        return isProtected;
     }
     
-    [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"not necessary"]];
-    return true;
+    [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Detect System Integrity Protection status: %@", @"not available for this OS"]];
+    return false;
 }
 
 
 - (BOOL) checkFullDiskAccess
 {
-    NSString *logMsg = @"FullDiskAccess status = %@";
+    NSString *logMsg = @"Full Disk Access status: %@";
     
     if (@available(macOS 10.14, *)) {
-        NSString *cmdResult = [Helper runCommand:@"sqlite3 /Library/Application\\ Support/com.apple.TCC/TCC.db '.tables'"];
+        NSString *cmd = [NSString stringWithFormat:@"sqlite3 /Library/Application\\ Support/com.apple.TCC/TCC.db 'select service, client, auth_value from access where auth_value = 2 and service = \"kTCCServiceSystemPolicyAllFiles\" and client = \"%@\"'", [[NSBundle mainBundle] bundleIdentifier]];
+        NSString *cmdResult = [Helper runCommand:cmd];
         if ([cmdResult length] == 0) {
-            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"failed"]];
+            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"not found or disabled"]];
             [self alertDiskFullAccess];
             return false;
         }
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"successful"]];
+        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"existing and activated"]];
     }
     else {
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"not necessary"]];
+        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"not available for this OS"]];
     }
     
     return true;
@@ -231,6 +244,25 @@ static MenubarController *m_staticMenubarController;
     
     if ([alert runModal] == NSAlertSecondButtonReturn) {
         self.a_settings.SipEnabledConfirmed = YES;
+        [self.a_settings saveSettings];
+    }
+}
+
+- (void) alertSystemIntegrityProtectionUnknown
+{
+    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+    [alert setAlertStyle:NSWarningAlertStyle];
+    
+    [alert addButtonWithTitle:NSLocalizedString(@"roger_that", nil)];
+    [alert addButtonWithTitle:NSLocalizedString(@"dont_show_again", nil)];
+    
+    [alert setMessageText:NSLocalizedString(@"alert_sip_unknown", nil)];
+    [alert setInformativeText:NSLocalizedString(@"alert_sip_unknown_long", nil)];
+    
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
+    
+    if ([alert runModal] == NSAlertSecondButtonReturn) {
+        self.a_settings.SipUnknownConfirmed = YES;
         [self.a_settings saveSettings];
     }
 }

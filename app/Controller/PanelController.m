@@ -107,8 +107,7 @@ static bool ANIMATE = false;
 
 - (id)initWithDelegate:(id<PanelControllerDelegate>)delegate
 {
-    if ((self = [super initWithWindowNibName:@"Panel"]))
-    {
+    if ((self = [super initWithWindowNibName:@"Panel"])) {
         _Delegate    = delegate;
         _a_tableRows = [[NSMutableArray alloc] initWithObjects:
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"cookies",nil), @"title", [NSNumber numberWithInt:SettingsModeCookies], @"tag", nil],
@@ -164,7 +163,7 @@ static bool ANIMATE = false;
     ANIMATE = (@available(macOS 10.15, *) ? YES : NO);
     
     // Make a fully skinned panel
-    NSPanel *panel = (id)[self window];
+    NSPanel *panel = (id) [self window];
     [panel setAcceptsMouseMovedEvents:YES];
     [panel setFloatingPanel:NO];
     [panel setLevel:NSTornOffMenuWindowLevel];
@@ -173,7 +172,7 @@ static bool ANIMATE = false;
     
     // Resize panel
     NSRect panelRect = [[self window] frame];
-    panelRect.size.height = ( self.a_settings.CleanActive ? POPUP_HEIGHT + (ROW_HEIGHT * self.a_tableRows.count) : POPUP_HEIGHT_CLOSED );
+    panelRect.size.height = (self.a_settings.CleanActive ? POPUP_HEIGHT + (ROW_HEIGHT * self.a_tableRows.count) : POPUP_HEIGHT_CLOSED);
     [[self window] setFrame:panelRect display:NO];
     
     // set translations
@@ -213,8 +212,7 @@ static bool ANIMATE = false;
     NSString * appPath = [[NSBundle mainBundle] bundlePath];
     LSSharedFileListRef loginItems = LSSharedFileListCreate(NULL, kLSSharedFileListSessionLoginItems, NULL);
     
-    if (loginItems)
-    {
+    if (loginItems) {
         [self.a_chkStartup setState:[LoginItemManager loginItemExistsWithLoginItemReference:loginItems ForPath:appPath]];
         CFRelease(loginItems);
     }
@@ -266,11 +264,9 @@ static bool ANIMATE = false;
  */
 - (void)setHasActivePanel:(BOOL)flag
 {
-    if ( _hasActivePanel != flag )
-    {
+    if (_hasActivePanel != flag) {
         _hasActivePanel = flag;
-        
-        if ( _hasActivePanel ) {
+        if (_hasActivePanel) {
             [self openPanel];
         }
         else {
@@ -289,7 +285,7 @@ static bool ANIMATE = false;
 
 - (void)windowDidResignKey:(NSNotification *)notification;
 {
-    if ( [[self window] isVisible] ) {
+    if ([[self window] isVisible]) {
         self.hasActivePanel = NO;
     }
 }
@@ -300,7 +296,6 @@ static bool ANIMATE = false;
     NSWindow *panel   = [self window];
     NSRect statusRect = [self statusRectForWindow:panel];
     NSRect panelRect  = [panel frame];
-    
     CGFloat statusX   = roundf(NSMidX(statusRect));
     CGFloat panelX    = statusX - NSMinX(panelRect);
         
@@ -328,8 +323,7 @@ static bool ANIMATE = false;
     if (size.height == POPUP_HEIGHT_CLOSED) {
         textFieldFrame.origin.y = positionOffset;
     }
-    else
-    {
+    else {
         int openPosition = (int) ((2 + ([self.a_tableRows count] * ROW_HEIGHT)) * (-1));
         textFieldFrame.origin.y = openPosition + positionOffset;
     }
@@ -366,17 +360,15 @@ static bool ANIMATE = false;
     
     StatusItemView *statusItemView = nil;
     
-    if ( [self.Delegate respondsToSelector:@selector(statusItemViewForPanelController:)] ) {
+    if ([self.Delegate respondsToSelector:@selector(statusItemViewForPanelController:)]) {
         statusItemView = [self.Delegate statusItemViewForPanelController:self];
     }
     
-    if ( statusItemView )
-    {
+    if (statusItemView) {
         statusRect          = statusItemView.globalRect;
         statusRect.origin.y = NSMinY(statusRect) - NSHeight(statusRect);
     }
-    else
-    {
+    else {
         statusRect.size     = NSMakeSize(STATUS_ITEM_VIEW_WIDTH, [[NSStatusBar systemStatusBar] thickness]);
         statusRect.origin.x = roundf((NSWidth(screenRect) - NSWidth(statusRect)) / 2);
         statusRect.origin.y = NSHeight(screenRect) - NSHeight(statusRect) * 2;
@@ -401,7 +393,7 @@ static bool ANIMATE = false;
     panelRect.origin.x   = roundf(NSMidX(statusRect) - NSWidth(panelRect) / 2);
     panelRect.origin.y   = NSMaxY(statusRect) - NSHeight(panelRect);
     
-    if ( NSMaxX(panelRect) > (NSMaxX(screenRect) - ARROW_HEIGHT) ) {
+    if (NSMaxX(panelRect) > (NSMaxX(screenRect) - ARROW_HEIGHT)) {
         panelRect.origin.x -= NSMaxX(panelRect) - (NSMaxX(screenRect) - ARROW_HEIGHT);
     }
     
@@ -412,8 +404,8 @@ static bool ANIMATE = false;
     
     [Helper detectDataCountAndSize:self.a_settings targetTextField:self.TfDataCountSize];
     
-    if (!ANIMATE) // No animation
-    {
+    // No animation
+    if (!ANIMATE) {
         [self locateFrameDataCountSize:panelRect.size];
         [panel setFrame:panelRect display:YES];
         [panel setAlphaValue:1];
@@ -475,7 +467,7 @@ static bool ANIMATE = false;
     panelRect.origin.x    = roundf(NSMidX(statusRect) - NSWidth(panelRect) / 2);
     panelRect.origin.y    = NSMaxY(statusRect) - NSHeight(panelRect);
     
-    if ( NSMaxX(panelRect) > (NSMaxX(screenRect) - ARROW_HEIGHT) ) {
+    if (NSMaxX(panelRect) > (NSMaxX(screenRect) - ARROW_HEIGHT)) {
         panelRect.origin.x -= NSMaxX(panelRect) - (NSMaxX(screenRect) - ARROW_HEIGHT);
     }
     
@@ -490,8 +482,8 @@ static bool ANIMATE = false;
     [panel setFrame:statusRect display:YES];
     [panel makeKeyAndOrderFront:nil];
     
-    if (!ANIMATE) // No animation
-    {
+    // No animation
+    if (!ANIMATE) {
         [self locateFrameDataCountSize:panelRect.size];
         [panel setFrame:panelRect display:YES];
         [panel setAlphaValue:alpha];
@@ -517,8 +509,8 @@ static bool ANIMATE = false;
  */
 - (void)closePanel
 {
-    if (!ANIMATE) // No animation
-    {
+    // No animation
+    if (!ANIMATE) {
         [[self window] setAlphaValue:0.0];
         [self restorePanel:0.0];
         [self close];
@@ -695,8 +687,7 @@ static bool ANIMATE = false;
  */
 - (IBAction)actionSettings:(id)sender
 {
-    if (![self.a_btnCleanActive isHidden])
-    {
+    if (![self.a_btnCleanActive isHidden]) {
         [self resizePanel:CGSizeMake(PANEL_WIDTH, POPUP_HEIGHT_SMALL) alpha:1.0];
         
         [self.a_btnBurnNow setHidden:YES];
@@ -709,8 +700,7 @@ static bool ANIMATE = false;
         
         [self.a_btnSettings setImage:[NSImage imageNamed:@"btn_settings_pressed.png"]];
     } 
-    else
-    {
+    else {
         //if (!isMyQueue()) {
         //    self.myQueue = dispatch_queue_create("QueDataCountAndSize", DISPATCH_QUEUE_SERIAL);
         //}
@@ -748,8 +738,7 @@ static bool ANIMATE = false;
     
     [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
     
-    if ([alert runModal] == NSAlertFirstButtonReturn)
-    {
+    if ([alert runModal] == NSAlertFirstButtonReturn) {
         [Helper log:LOG_NOTICE logMessage:@"User click: Burn Now"];
         SweeperManager *sweeperManager = [[SweeperManager alloc] init];
         [sweeperManager cleanupWithCompletion:nil];
@@ -765,15 +754,12 @@ static bool ANIMATE = false;
     NSEvent *currentEvent = [NSApp currentEvent];
     NSUInteger clearFlags = ([currentEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask);
     
-    BOOL shiftPressed       = (clearFlags == NSShiftKeyMask);
+    BOOL shiftPressed = (clearFlags == NSShiftKeyMask);
     BOOL shiftOptionPressed = (clearFlags == (NSShiftKeyMask | NSAlternateKeyMask));
 
-    if ( shiftPressed || shiftOptionPressed )
-    {
+    if (shiftPressed || shiftOptionPressed) {
         openDuration *= 10;
-        
-        if (shiftOptionPressed)
-        {
+        if (shiftOptionPressed) {
             NSWindow *panel = [self window];
             
             NSRect screenRect = [[panel screen] frame];

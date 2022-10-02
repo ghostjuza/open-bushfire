@@ -265,22 +265,16 @@ static NSFileManager *fileManager = nil;
     NSString *logMsg = @"";
     
     //if (osVersion >= 101000)
-    if (@available(macOS 10.10, *))
-    {
+    if (@available(macOS 10.10, *)) {
         #if DEBUG == 1
-        
-            logMsg = @"[DBG] Restart nsurlstoraged.";
-        
+        logMsg = @"[DBG] Restart nsurlstoraged.";
         #endif
         
         return [Helper restartLaunchAgent:@"/System/Library/LaunchAgents/com.apple.nsurlstoraged.plist" logMessage:logMsg];
     }
-    else
-    {
+    else {
         #if DEBUG == 1
-        
-            logMsg = @"[DBG] Restart cookied.";
-        
+        logMsg = @"[DBG] Restart cookied.";
         #endif
         
         return [Helper restartLaunchAgent:@"/System/Library/LaunchAgents/com.apple.cookied.plist" logMessage:logMsg];
@@ -411,9 +405,7 @@ static NSFileManager *fileManager = nil;
     NSString *logMsg = @"";
     
     #if DEBUG == 1
-    
         logMsg = @"[DBG] Burn Downlaodlist from hidden DataStorage.";
-    
     #endif
     
     [Helper runTerminalCommand:cmdDeleteFromLaunchService logMessage:logMsg];
