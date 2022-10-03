@@ -14,7 +14,7 @@ Currently it runs up macOS 10.11 to 12.x.
 
 Website: [bushfire-app.com](https://www.bushfire-app.com), [bushfire-app.de](https://www.bushfire-app.de)  
 Twitter: [bushfireapp](https://twitter.com/bushfireapp)  
-Discoed: [Open Bushfire App](https://discord.gg/pcw93z63Eh)  
+Discord: [Open Bushfire App](https://discord.gg/pcw93z63Eh)  
 
 ## Contributing
 

@@ -15,23 +15,12 @@
 
 static NSFileManager *fileManager = nil;
 
-+ (void) log:(int)logLevel logMessage:(NSString*)logMessage
++ (void) log:(int)logLevel withMessage:(NSString*)logMessage
 {
     if (![[Settings settingsFromDefaults] LogEnabled]) {
         return;
     }
     
-    /*
-     * logLevel :: Specifies the part of the system generating the message, and as a level, indicates the severity of the message. The level of severity is selected from the following list:
-     *  LOG_ALERT   : Indicates a condition that should be corrected immediately; for example, a corrupted database.
-     *  LOG_CRIT    : Indicates critical conditions; for example, hard device errors.
-     *  LOG_DEBUG   : Displays messages containing information useful to debug a program.
-     *  LOG_EMERG   : Indicates a panic condition reported to all users; system is unusable.
-     *  LOG_ERR     : Indicated error conditions.
-     *  LOG_INFO    : Indicates general information messages.
-     *  LOG_NOTICE  : Indicates a condition requiring special handling, but not an error condition.
-     *  LOG_WARNING : Logs warning messages.
-     */
     if (@available(macOS 10.14, *)) {
         // @NOTE : maybe better use: syslog_r(LOG_ALERT, syslog_data_struct, "%s", "who:internal error 23");
         syslog(logLevel, "syslog[%d]: %s", logLevel, [logMessage UTF8String]);
@@ -86,7 +75,7 @@ static NSFileManager *fileManager = nil;
     
 #if DEBUG == 1
     
-    [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] macOS Version Raw [%@].", [self getOSVersionFullVersion]]];
+    [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"[DBG] macOS Version Raw [%@].", [self getOSVersionFullVersion]]];
     
 #endif
     
@@ -116,8 +105,8 @@ static NSFileManager *fileManager = nil;
     
 #if DEBUG == 1
     
-    [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] macOS Version as string [%@].", version]];
-    [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] macOS Version as int [%@].", [@(osVersion) stringValue]]];
+    [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"[DBG] macOS Version as string [%@].", version]];
+    [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"[DBG] macOS Version as int [%@].", [@(osVersion) stringValue]]];
     
 #endif
     
@@ -140,13 +129,11 @@ static NSFileManager *fileManager = nil;
 + (NSArray*) appendObjectsFromDirectory:(NSString*)source excludePattern:(nullable NSString*)pattern toArrayList:(NSArray*)arrayList
 {
     NSString *absolutePath = [Helper getAbsolutePathWithDirectory:[@"/" stringByAppendingString:source]];
-    NSArray  *fileList     = [[Helper getFileManager] contentsOfDirectoryAtPath:absolutePath error:nil]; 
+    NSArray  *fileList = [[Helper getFileManager] contentsOfDirectoryAtPath:absolutePath error:nil];
     
-    if (fileList) 
-    {
+    if (fileList) {
         for (int index = 0; index < fileList.count; index++) {
             NSString *file = [fileList objectAtIndex:index];
-            
             if ([pattern isNotEqualTo:nil] && [file rangeOfString:pattern].location != NSNotFound) continue;
             if (file != nil) {
                 arrayList = [arrayList arrayByAddingObject:[source stringByAppendingString:file]];
@@ -282,8 +269,7 @@ static NSFileManager *fileManager = nil;
     unsigned long long objectSize = 0;
     BOOL isDirectory;
     
-    if ([[Helper getFileManager] fileExistsAtPath:source isDirectory:&isDirectory] && !isDirectory)
-    {
+    if ([[Helper getFileManager] fileExistsAtPath:source isDirectory:&isDirectory] && !isDirectory) {
         NSDictionary *fattrs = [[Helper getFileManager] attributesOfItemAtPath:source error:nil];
         objectSize = [[fattrs objectForKey:NSFileSize] unsignedLongLongValue];
     }
@@ -297,23 +283,19 @@ static NSFileManager *fileManager = nil;
     NSString *literalText = @"Bytes";
     double dSize = size * 1.0;
     
-    if (dSize > 1024)
-    {
+    if (dSize > 1024) {
         dSize = dSize / 1024.0;
         literalText = @"KB";
         
-        if (dSize > 1024)
-        {
+        if (dSize > 1024) {
             dSize = dSize / 1024.0;
             literalText = @"MB";
             
-            if (dSize > 1024)
-            {
+            if (dSize > 1024) {
                 dSize = dSize / 1024.0;
                 literalText = @"GB";
                 
-                if (dSize > 1024)
-                {
+                if (dSize > 1024) {
                     dSize = dSize / 1024.0;
                     literalText = @"TB";
                 }
@@ -371,7 +353,6 @@ static NSFileManager *fileManager = nil;
     for (int i = 0; i < [arrayList count]; i++) {
         NSString *item     = [arrayList objectAtIndex:i];
         NSString *fromItem = [@"/" stringByAppendingString:item];
-        
         finderObjectList = [finderObjectList arrayByAddingObject:[Helper getAbsolutePathWithDirectory:fromItem]];
     }
     
@@ -393,7 +374,7 @@ static NSFileManager *fileManager = nil;
     //if ( [Helper getOSVersion] >= 101200 ) {
     if (@available(macOS 10.12, *)) {
         #if DEBUG == 1
-        [Helper log:LOG_NOTICE logMessage:@"[DBG] unload via kill ..."];
+        [Helper log:LOG_NOTICE withMessage:@"[DBG] unload via kill ..."];
         #endif
         
         isUnloaded = [Helper runTerminalCommand:
@@ -403,7 +384,7 @@ static NSFileManager *fileManager = nil;
     }
     else {
         #if DEBUG == 1
-        [Helper log:LOG_NOTICE logMessage:@"[DBG] unload via launchctl ..."];
+        [Helper log:LOG_NOTICE withMessage:@"[DBG] unload via launchctl ..."];
         #endif
         
         isUnloaded = [Helper runTerminalCommand:[@"launchctl unload " stringByAppendingString:launchAgent] logMessage:message];
@@ -412,12 +393,12 @@ static NSFileManager *fileManager = nil;
     if (isUnloaded)
     {
         #if DEBUG == 1
-        [Helper log:LOG_NOTICE logMessage:@"[DBG] unload success"];
+        [Helper log:LOG_NOTICE withMessage:@"[DBG] unload success"];
         #endif
         
         if (!unloadOnly && [Helper runTerminalCommand:[@"launchctl load " stringByAppendingString:launchAgent] logMessage:@""]) {
             #if DEBUG == 1
-            [Helper log:LOG_NOTICE logMessage:@"[DBG] launchctl load success"];
+            [Helper log:LOG_NOTICE withMessage:@"[DBG] launchctl load success"];
             #endif
             
             returnValue = true;
@@ -434,7 +415,7 @@ static NSFileManager *fileManager = nil;
 + (bool) runTerminalCommand:(NSString*)command logMessage:(NSString*)message
 {
     if (message.length > 0) {
-        [Helper log:LOG_NOTICE logMessage:message];
+        [Helper log:LOG_NOTICE withMessage:message];
     }
     
     int retVal = system([command cStringUsingEncoding:NSUTF8StringEncoding]);
@@ -455,15 +436,15 @@ static NSFileManager *fileManager = nil;
     // @see http://stackoverflow.com/questions/8941691/how-to-get-the-status-of-command-run-by-system
     //
     if (retVal == -1 || retVal == 127) {
-        [Helper log:LOG_ERR logMessage:[NSString stringWithFormat:@"#! command failed [%d].", retVal]];
+        [Helper log:LOG_ERR withMessage:[NSString stringWithFormat:@"#! command failed [%d].", retVal]];
         return false;
     }
     
 #if DEBUG == 1
     
     if (retVal != 0) {
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] Shell command return value [%d].", retVal]];
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] Shell command [%@].", command]];
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"[DBG] Shell command return value [%d].", retVal]];
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"[DBG] Shell command [%@].", command]];
     }
     
 #endif
@@ -480,8 +461,7 @@ static NSFileManager *fileManager = nil;
 
 + (void) moveFinderObject:(NSString*)fromSource to:(NSString*)destination asTerminalCommand:(bool)asTerminalCommand
 {
-    if (asTerminalCommand)
-    {
+    if (asTerminalCommand) {
         NSString *_fromItem    = [fromSource stringByReplacingOccurrencesOfString:@" " withString:@"\\ "];
         NSString *_destination = [destination stringByReplacingOccurrencesOfString:@" " withString:@"\\ "];
         
@@ -502,6 +482,7 @@ static NSFileManager *fileManager = nil;
     objectSizeActive:(nullable unsigned long long*)objectSizeActive
     objectCountTotal:(nullable NSUInteger*)objectCountTotal
     objectSizeTotal:(nullable unsigned long long*)objectSizeTotal
+    log:(bool)log
 {
     *objectCountCurrent = 0;
     *objectSizeCurrent = 0;
@@ -510,8 +491,12 @@ static NSFileManager *fileManager = nil;
     *objectCountActive = 0;
     *objectSizeActive = 0;
     
+    if (log) {
+        [Helper log:LOG_NOTICE withMessage:@"Run detect data count and size"];
+    }
+    
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getFormsList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanForms"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanForms" log:log
     ];
     if (settings.CleanActive && settings.CleanForms) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -519,7 +504,7 @@ static NSFileManager *fileManager = nil;
     }
 
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getLocationList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanLocation"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanLocation" log:log
     ];
     if (settings.CleanActive && settings.CleanLocation) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -527,7 +512,7 @@ static NSFileManager *fileManager = nil;
     }
     
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getPreviewList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanPreview"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanPreview" log:log
     ];
     if (settings.CleanActive && settings.CleanPreview) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -535,7 +520,7 @@ static NSFileManager *fileManager = nil;
     }
     
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getTopSitesList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanTopSites"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanTopSites" log:log
     ];
     if (settings.CleanActive && settings.CleanTopSites) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -544,7 +529,7 @@ static NSFileManager *fileManager = nil;
     
     
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getCacheList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanCache"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanCache" log:log
     ];
     if (settings.CleanActive && settings.CleanCache) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -552,7 +537,7 @@ static NSFileManager *fileManager = nil;
     }
     
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getWebPageIconsList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanWebPageIcons"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanWebPageIcons" log:log
     ];
     if (settings.CleanActive && settings.CleanWebPageIcons) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -560,7 +545,7 @@ static NSFileManager *fileManager = nil;
     }
     
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getHistoryList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanHistory"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanHistory" log:log
     ];
     if (settings.CleanActive && settings.CleanHistory) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -568,7 +553,7 @@ static NSFileManager *fileManager = nil;
     }
     
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getDownloadsList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanDownloads"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanDownloads" log:log
     ];
     if (settings.CleanActive && settings.CleanDownloads) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -577,7 +562,7 @@ static NSFileManager *fileManager = nil;
     
     
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getCookiesList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanCookies"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanCookies" log:log
     ];
     if (settings.CleanActive && settings.CleanCookies) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -585,7 +570,7 @@ static NSFileManager *fileManager = nil;
     }
     
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getFlashCookiesList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanFlashCookies"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanFlashCookies" log:log
     ];
     if (settings.CleanActive && settings.CleanCookies) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -594,7 +579,7 @@ static NSFileManager *fileManager = nil;
     
     
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getOfflineDataList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanOfflineData"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanOfflineData" log:log
     ];
     if (settings.CleanActive && settings.CleanOfflineData) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -602,7 +587,7 @@ static NSFileManager *fileManager = nil;
     }
     
     [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getLocalStorageList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanLocalStorage"
+        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanLocalStorage" log:log
     ];
     if (settings.CleanActive && settings.CleanOfflineData) {
         *objectSizeActive  += *objectSizeCurrent;
@@ -617,6 +602,7 @@ static NSFileManager *fileManager = nil;
     objectCountTotal:(nullable NSUInteger*)objectCountTotal
     objectSizeTotal:(nullable unsigned long long*)objectSizeTotal
     spyListName:(NSString*)spyListName
+    log:(bool)log
 {
     NSUInteger countCurrent = 0;
     unsigned long long sizeCurrent = [Helper spyFinderObjectFromSourceList:spyList objectCount:&countCurrent];
@@ -627,11 +613,13 @@ static NSFileManager *fileManager = nil;
     *objectCountTotal += countCurrent;
     *objectSizeTotal += sizeCurrent;
     
-    [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"%@ %@", spyListName, [NSString stringWithFormat:@"[objects:%d] [size:%@]", (int) countCurrent, [Helper formatBytes:sizeCurrent]]]];
+    if (log) {
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"%@ %@", spyListName, [NSString stringWithFormat:@"[objects:%d] [size:%@]", (int) countCurrent, [Helper formatBytes:sizeCurrent]]]];
+    }
 }
 
 
-+ (void) detectDataCountAndSize:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize
++ (void) detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize
 {
     [TfDataCountSize setStringValue:NSLocalizedString(@"data_count_size_detect", nil)];
 
@@ -645,12 +633,13 @@ static NSFileManager *fileManager = nil;
     dispatch_async(dispatch_get_main_queue(), ^
     {
         [self _detectDataCountAndSize:settings
-             objectCountCurrent:&objectCountCurrent
-             objectSizeCurrent:&objectSizeCurrent
-             objectCountActive:&objectCountActive
-             objectSizeActive:&objectSizeActive
-             objectCountTotal:&objectCountTotal
-             objectSizeTotal:&objectSizeTotal
+            objectCountCurrent:&objectCountCurrent
+            objectSizeCurrent:&objectSizeCurrent
+            objectCountActive:&objectCountActive
+            objectSizeActive:&objectSizeActive
+            objectCountTotal:&objectCountTotal
+            objectSizeTotal:&objectSizeTotal
+            log:false
         ];
         
         NSString *dataCountAndSize = [NSString stringWithFormat:NSLocalizedString(@"data_count_size", nil),
@@ -671,15 +660,16 @@ static NSFileManager *fileManager = nil;
     unsigned long long objectSizeActive = 0;
     
     [self _detectDataCountAndSize:settings
-         objectCountCurrent:&objectCountCurrent
-         objectSizeCurrent:&objectSizeCurrent
-         objectCountActive:&objectCountActive
-         objectSizeActive:&objectSizeActive
-         objectCountTotal:&objectCountTotal
-         objectSizeTotal:&objectSizeTotal
+        objectCountCurrent:&objectCountCurrent
+        objectSizeCurrent:&objectSizeCurrent
+        objectCountActive:&objectCountActive
+        objectSizeActive:&objectSizeActive
+        objectCountTotal:&objectCountTotal
+        objectSizeTotal:&objectSizeTotal
+        log:true
     ];
     
-    [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Burn %@", [NSString stringWithFormat:@"[objects:%d] [size:%@]", (int) objectCountActive, [Helper formatBytes:objectSizeActive]]]];
+    [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Burn %@", [NSString stringWithFormat:@"[objects:%d] [size:%@]", (int) objectCountActive, [Helper formatBytes:objectSizeActive]]]];
     
     #if PUSH_CLEANUP_COUNTING == 1
     
@@ -688,7 +678,7 @@ static NSFileManager *fileManager = nil;
     
     #else
     
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Push Cleanup Counting = %@", @"NO"]];
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Push Cleanup Counting = %@", @"NO"]];
     
     #endif
 }
@@ -717,18 +707,18 @@ static NSFileManager *fileManager = nil;
         return YES;
     }
     
-    [Helper log:LOG_NOTICE logMessage:@"No internet connection"];
+    [Helper log:LOG_NOTICE withMessage:@"No internet connection"];
     return NO;
 }
 
 
-/*
- * Have to test anstelle AuthorizationExecuteWithPrivileges in AuthorizationManager.m
+/**
+ Have to test anstelle AuthorizationExecuteWithPrivileges in AuthorizationManager.m
  */
 - (BOOL) runProcessAsAdministrator:(NSString*)scriptPath
-                     withArguments:(NSArray *)arguments
-                            output:(NSString **)output
-                  errorDescription:(NSString **)errorDescription
+    withArguments:(NSArray *)arguments
+    output:(NSString **)output
+    errorDescription:(NSString **)errorDescription
 {
     NSString * allArgs = [arguments componentsJoinedByString:@" "];
     NSString * fullScript = [NSString stringWithFormat:@"'%@' %@", scriptPath, allArgs];

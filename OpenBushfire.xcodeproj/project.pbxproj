@@ -80,7 +80,6 @@
 		E1FD1C4F1C982013008F953E /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E198F82219082B610004B6FC /* Security.framework */; };
 		E1FD1C501C982021008F953E /* SecurityFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E198F82319082B610004B6FC /* SecurityFoundation.framework */; };
 		E1FD1C511C98202E008F953E /* SecurityInterface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E198F82419082B610004B6FC /* SecurityInterface.framework */; };
-		E1FD1C641C9821C7008F953E /* AuthorizationManager.m in Sources */ = {isa = PBXBuildFile; fileRef = E1C130A3190912B600F77012 /* AuthorizationManager.m */; };
 		E1FD24E51CF0711000BCE0A1 /* ico_menubar_clean@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E1FD24E31CF0711000BCE0A1 /* ico_menubar_clean@2x.png */; };
 		E1FD24E61CF0711000BCE0A1 /* ico_menubar_clean.png in Resources */ = {isa = PBXBuildFile; fileRef = E1FD24E41CF0711000BCE0A1 /* ico_menubar_clean.png */; };
 /* End PBXBuildFile section */
@@ -194,8 +193,6 @@
 		E1AA863C15D53A8000E53F4F /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		E1BF0435159BA119004EE3F7 /* btn_close_about.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = btn_close_about.png; sourceTree = "<group>"; };
 		E1BF0436159BA119004EE3F7 /* btn_close_about_pressed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = btn_close_about_pressed.png; sourceTree = "<group>"; };
-		E1C130A2190912B600F77012 /* AuthorizationManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AuthorizationManager.h; sourceTree = "<group>"; };
-		E1C130A3190912B600F77012 /* AuthorizationManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AuthorizationManager.m; sourceTree = "<group>"; };
 		E1D710E91CEB9194000626FC /* ico_menubar_invert@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ico_menubar_invert@2x.png"; sourceTree = "<group>"; };
 		E1D710EA1CEB9194000626FC /* ico_menubar@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ico_menubar@2x.png"; sourceTree = "<group>"; };
 		E1D959301CD4CCCB00F37076 /* icon.iconset */ = {isa = PBXFileReference; lastKnownFileType = folder.iconset; path = icon.iconset; sourceTree = "<group>"; };
@@ -428,8 +425,6 @@
 		326A1A15158E661400F3ABDA /* Manager */ = {
 			isa = PBXGroup;
 			children = (
-				E1C130A2190912B600F77012 /* AuthorizationManager.h */,
-				E1C130A3190912B600F77012 /* AuthorizationManager.m */,
 				32AC31C4158BBEBB002C81D4 /* LoginItemManager.h */,
 				32AC31C5158BBEBB002C81D4 /* LoginItemManager.m */,
 				326208D5165B78A200DAC62D /* Reachability.h */,
@@ -639,7 +634,6 @@
 				32F47293165A5F9A0008EE9A /* MenubarController.m in Sources */,
 				32F47294165A5F9A0008EE9A /* PanelController.m in Sources */,
 				32F47295165A5F9A0008EE9A /* Settings.m in Sources */,
-				E1FD1C641C9821C7008F953E /* AuthorizationManager.m in Sources */,
 				32F47296165A5F9A0008EE9A /* LoginItemManager.m in Sources */,
 				32F47297165A5F9A0008EE9A /* AboutWindowController.m in Sources */,
 				32F47298165A5F9A0008EE9A /* ImagePreviewCell.m in Sources */,
@@ -788,7 +782,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = "";
@@ -802,6 +797,7 @@
 				GCC_PREFIX_HEADER = "app/Resources/Bushfire-Prefix.pch";
 				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/app/Resources/Bushfire-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = app.ghostjuza.Bushfire;
@@ -816,7 +812,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = "";
@@ -829,6 +826,7 @@
 				GCC_PREFIX_HEADER = "app/Resources/Bushfire-Prefix.pch";
 				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/app/Resources/Bushfire-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = app.ghostjuza.Bushfire;

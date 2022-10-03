@@ -402,7 +402,7 @@ static bool ANIMATE = false;
     [panel setFrame:statusRect display:YES];
     [panel makeKeyAndOrderFront:nil];
     
-    [Helper detectDataCountAndSize:self.a_settings targetTextField:self.TfDataCountSize];
+    [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
     
     // No animation
     if (!ANIMATE) {
@@ -673,7 +673,7 @@ static bool ANIMATE = false;
     
     // Detect data counts and sizes
     //
-    [Helper detectDataCountAndSize:self.a_settings targetTextField:self.TfDataCountSize];
+    [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
 }
 
 
@@ -709,7 +709,7 @@ static bool ANIMATE = false;
         // dispatch_get_current_queue | dispatch_get_main_queue
         //dispatch_async(self.myQueue, ^ {
         dispatch_async(dispatch_get_main_queue(), ^ {
-            [Helper detectDataCountAndSize:self.a_settings targetTextField:self.TfDataCountSize];
+            [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
             [self restorePanel:1.0];
         });
     }
@@ -739,7 +739,7 @@ static bool ANIMATE = false;
     [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
     
     if ([alert runModal] == NSAlertFirstButtonReturn) {
-        [Helper log:LOG_NOTICE logMessage:@"User click: Burn Now"];
+        [Helper log:LOG_NOTICE withMessage:@"User click: Burn Now"];
         SweeperManager *sweeperManager = [[SweeperManager alloc] init];
         [sweeperManager cleanupWithCompletion:nil];
         [sweeperManager release];
@@ -766,7 +766,7 @@ static bool ANIMATE = false;
             NSRect statusRect = [self statusRectForWindow:panel];
             NSRect panelRect  = [panel frame];
             
-            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Icon is at %@\n\tMenu is on screen %@\n\tWill be animated to %@", NSStringFromRect(statusRect), NSStringFromRect(screenRect), NSStringFromRect(panelRect)]];
+            [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Icon is at %@\n\tMenu is on screen %@\n\tWill be animated to %@", NSStringFromRect(statusRect), NSStringFromRect(screenRect), NSStringFromRect(panelRect)]];
         }
     }
     
@@ -794,7 +794,7 @@ static bool ANIMATE = false;
     // dispatch_get_current_queue | dispatch_get_main_queue
     //dispatch_async(self.myQueue, ^{
     dispatch_async(dispatch_get_main_queue(), ^ {
-        [Helper detectDataCountAndSize:self.a_settings targetTextField:self.TfDataCountSize];
+        [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
         [self restorePanel:1.0];
     });
 }
@@ -867,12 +867,16 @@ static bool ANIMATE = false;
 
 
 /**
- update check
+ check for update.
+ see: https://sparkle-project.org/documentation/
+ see: https://christiantietze.de/posts/2019/06/sparkle-xpc-branch/
+ 
  @param sender of nsbutton
 */
 - (IBAction)actionUpdateCheck:(id)sender
 {
     [[[[SUUpdater alloc] init] autorelease] checkForUpdates:nil];
+    //[[[SPUUpdater alloc] autorelease] checkForUpdates];
     //[[[SPUStandardUpdaterController alloc] autorelease] checkForUpdates:nil]; // SPUUpdater
 }
 

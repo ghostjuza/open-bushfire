@@ -85,8 +85,9 @@ static MenubarController *m_staticMenubarController;
     
 #endif
     
-    if(isConnectionAvailable) {
+    if (isConnectionAvailable) {
         [[[SUUpdater alloc] init] checkForUpdatesInBackground];
+        //[[[SPUUpdater alloc] autorelease] checkForUpdatesInBackground];
     }
     
     self.a_settings = [Settings settingsFromDefaults];
@@ -124,36 +125,36 @@ static MenubarController *m_staticMenubarController;
     if (@available(macOS 10.14, *))
     {
         NSString *sipStatus = [Helper runCommand:@"csrutil status"];
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Detect %@", sipStatus]];
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Detect %@", sipStatus]];
         bool isProtected = true;
         bool isSipUnknown = [Helper inString:sipStatus needle:@"unknown ("];
         
         if (!isSipUnknown && [Helper inString:sipStatus needle:@"enabled"]) {
-            [Helper log:LOG_NOTICE logMessage:@"In SIP status condition: enabled"];
+            [Helper log:LOG_NOTICE withMessage:@"In SIP status condition: enabled"];
             if (!self.a_settings.SipEnabledConfirmed) {
                 [self alertSystemIntegrityProtection];
             }
         }
         else if (!isSipUnknown && [Helper inString:sipStatus needle:@"disabled"]) {
-            [Helper log:LOG_NOTICE logMessage:@"In SIP status condition: disabled"];
+            [Helper log:LOG_NOTICE withMessage:@"In SIP status condition: disabled"];
             isProtected = false;
             self.a_settings.SipUnknownConfirmed = self.a_settings.SipEnabledConfirmed = NO;
             [self.a_settings saveSettings];
         }
         else { // unknown
-            [Helper log:LOG_NOTICE logMessage:@"In SIP status condition: unknown"];
+            [Helper log:LOG_NOTICE withMessage:@"In SIP status condition: unknown"];
             if (!self.a_settings.SipUnknownConfirmed) {
                 [self alertSystemIntegrityProtectionUnknown];
             }
         }
         
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Status System Integrity Protection 'enabled' is confirmed: %@", (self.a_settings.SipEnabledConfirmed ? @"YES" : @"NO")]];
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Status System Integrity Protection 'unknown (custom configuration)' is confirmed: %@", (self.a_settings.SipUnknownConfirmed ? @"YES" : @"NO")]];
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Status System Integrity Protection 'enabled' is confirmed: %@", (self.a_settings.SipEnabledConfirmed ? @"YES" : @"NO")]];
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Status System Integrity Protection 'unknown (custom configuration)' is confirmed: %@", (self.a_settings.SipUnknownConfirmed ? @"YES" : @"NO")]];
         
         return isProtected;
     }
     
-    [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Detect System Integrity Protection status: %@", @"not available for this OS"]];
+    [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Detect System Integrity Protection status: %@", @"not available for this OS"]];
     return false;
 }
 
@@ -166,68 +167,18 @@ static MenubarController *m_staticMenubarController;
         NSString *cmd = [NSString stringWithFormat:@"sqlite3 /Library/Application\\ Support/com.apple.TCC/TCC.db 'select service, client, auth_value from access where auth_value = 2 and service = \"kTCCServiceSystemPolicyAllFiles\" and client = \"%@\"'", [[NSBundle mainBundle] bundleIdentifier]];
         NSString *cmdResult = [Helper runCommand:cmd];
         if ([cmdResult length] == 0) {
-            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"not found or disabled"]];
+            [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:logMsg, @"not found or disabled"]];
             [self alertDiskFullAccess];
             return false;
         }
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"existing and activated"]];
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:logMsg, @"exists and activated"]];
     }
     else {
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:logMsg, @"not available for this OS"]];
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:logMsg, @"not available for this OS"]];
     }
     
     return true;
 }
-
-
-//- (BOOL)checkSIPforAppIdentifier:(NSString*)identifier {
-//
-//    // First available from 10.14 Mojave
-//    if (@available(macOS 10.14, *)) {
-//
-////        int c = open("/Library/Application Support/com.apple.TCC/TCC.db", O_RDONLY);
-////        if (c == -1 && (errno == EPERM || errno == EACCES)) {
-////            // no full disk access
-////            return NO;
-////        }
-//
-//        OSStatus status;
-//        NSAppleEventDescriptor *targetAppEventDescriptor;
-//
-//        targetAppEventDescriptor = [NSAppleEventDescriptor descriptorWithBundleIdentifier:identifier];
-//        status = AEDeterminePermissionToAutomateTarget(targetAppEventDescriptor.aeDesc, typeWildCard, typeWildCard, true);
-//
-//        switch (status) {
-//            case -600: //procNotFound
-//                NSLog(@"Not running app with id <%@>", identifier);
-//                break;
-//
-//            case 0: // noErr
-//                NSLog(@"SIP check successfull for app with id <%@>", identifier);
-//                break;
-//
-//            case -1744: // errAEEventWouldRequireUserConsent
-//                // This only appears if you send false for askUserIfNeeded
-//                NSLog(@"User consent required for app with id <%@>", identifier);
-//                break;
-//
-//            case -1743: //errAEEventNotPermitted
-//                NSLog(@"User didn't allow usage for app with id <%@>", identifier);
-//
-//                // Here you should present a dialog with a tutorial on how to activate it manually
-//                // This can be something like
-//                // Go to system preferences > security > privacy
-//                // Choose automation and active [APPNAME] for [APPNAME]
-//
-//                return NO;
-//
-//            default:
-//                break;
-//        }
-//    }
-//    return YES;
-//}
-
 
 - (void) alertSystemIntegrityProtection
 {
@@ -326,8 +277,7 @@ static MenubarController *m_staticMenubarController;
  */
 - (PanelController *)panelController
 {
-    if (!self.a_panelController)
-    {
+    if (!self.a_panelController) {
         _a_panelController = [[PanelController alloc] initWithDelegate:self];
         [self.a_panelController addObserver:self forKeyPath:@"hasActivePanel" options:NSKeyValueObservingOptionInitial context:kContextActivePanel];
     }
@@ -357,13 +307,62 @@ static MenubarController *m_staticMenubarController;
  */
 - (void)m_safariTerminated:(NSNotification *)note
 {
-    if ([[[note userInfo] objectForKey:@"NSApplicationName"] isEqualToString:@"Safari"])
-    {
+    if ([[[note userInfo] objectForKey:@"NSApplicationName"] isEqualToString:@"Safari"]) {
         if (!self.a_sweeperManager) {
             _a_sweeperManager = [[SweeperManager alloc] init];
         }
         [self.a_sweeperManager cleanupWithCompletion:nil];
     }
 }
+
+
+//- (BOOL)checkSIPforAppIdentifier:(NSString*)identifier {
+//
+//    // First available from 10.14 Mojave
+//    if (@available(macOS 10.14, *)) {
+//
+////        int c = open("/Library/Application Support/com.apple.TCC/TCC.db", O_RDONLY);
+////        if (c == -1 && (errno == EPERM || errno == EACCES)) {
+////            // no full disk access
+////            return NO;
+////        }
+//
+//        OSStatus status;
+//        NSAppleEventDescriptor *targetAppEventDescriptor;
+//
+//        targetAppEventDescriptor = [NSAppleEventDescriptor descriptorWithBundleIdentifier:identifier];
+//        status = AEDeterminePermissionToAutomateTarget(targetAppEventDescriptor.aeDesc, typeWildCard, typeWildCard, true);
+//
+//        switch (status) {
+//            case -600: //procNotFound
+//                NSLog(@"Not running app with id <%@>", identifier);
+//                break;
+//
+//            case 0: // noErr
+//                NSLog(@"SIP check successfull for app with id <%@>", identifier);
+//                break;
+//
+//            case -1744: // errAEEventWouldRequireUserConsent
+//                // This only appears if you send false for askUserIfNeeded
+//                NSLog(@"User consent required for app with id <%@>", identifier);
+//                break;
+//
+//            case -1743: //errAEEventNotPermitted
+//                NSLog(@"User didn't allow usage for app with id <%@>", identifier);
+//
+//                // Here you should present a dialog with a tutorial on how to activate it manually
+//                // This can be something like
+//                // Go to system preferences > security > privacy
+//                // Choose automation and active [APPNAME] for [APPNAME]
+//
+//                return NO;
+//
+//            default:
+//                break;
+//        }
+//    }
+//    return YES;
+//}
+
 
 @end

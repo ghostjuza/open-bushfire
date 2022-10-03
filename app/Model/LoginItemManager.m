@@ -25,9 +25,10 @@
 {
     UInt32 seedValue;
 	CFURLRef thePath = NULL;
-	CFArrayRef loginItemsArray = LSSharedFileListCopySnapshot(theLoginItemsRefs, &seedValue);
+    CFArrayRef loginItemsArray = LSSharedFileListCopySnapshot(theLoginItemsRefs, &seedValue);
 	
-    for ( id item in (NSArray *)loginItemsArray ) {		
+    for ( id item in (NSArray *)loginItemsArray )
+    {
 		LSSharedFileListItemRef itemRef = (LSSharedFileListItemRef)item;
 		
         if ( LSSharedFileListItemResolve(itemRef, 0, (CFURLRef*) &thePath, NULL) == noErr ) {
@@ -115,7 +116,9 @@
     if (loginItemsRef == nil) return nil;
     
     NSArray *loginItems = (NSArray *)LSSharedFileListCopySnapshot(loginItemsRef, nil);
-    for (int currentIndex = 0; currentIndex < [loginItems count]; currentIndex++) {
+    
+    for (int currentIndex = 0; currentIndex < [loginItems count]; currentIndex++)
+    {
         LSSharedFileListItemRef currentItemRef = (LSSharedFileListItemRef)[loginItems objectAtIndex:currentIndex];
         if (LSSharedFileListItemResolve(currentItemRef, 0, (CFURLRef *) &itemUrl, NULL) == noErr) {
             if ([itemUrl isEqual:appUrl]) {
