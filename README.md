@@ -9,10 +9,12 @@ Currently it runs up macOS 10.11 to 12.x.
 
 ## Quick Links
 
-[Release Notes](https://github.com/ghostjuza/open-bushfire/blob/master/releasenotes.md)  
+[Release Notes](https://github.com/ghostjuza/open-bushfire/releases)  
+[Legacy Release Notes](https://github.com/ghostjuza/open-bushfire/blob/master/releasenotes.md)  
 
 Website: [bushfire-app.com](https://www.bushfire-app.com), [bushfire-app.de](https://www.bushfire-app.de)  
 Twitter: [bushfireapp](https://twitter.com/bushfireapp)  
+Discoed: [Open Bushfire App](https://discord.gg/pcw93z63Eh)  
 
 ## Contributing
 
