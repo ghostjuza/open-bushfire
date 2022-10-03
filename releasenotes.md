@@ -1,30 +1,30 @@
 # Release Notes
 
 ### Build 2022.235 (2022-10-02)
-`improved` handle SIP status: enabled, disabled, unknown;
-`improved` FullDiskAccess handle;
-`notice` Remove AuthorizationManager;
+`improved` handle SIP status: enabled, disabled, unknown;  
+`improved` FullDiskAccess handle;  
+`notice` Remove AuthorizationManager;  
 
 ### Build 2022.190 (2022-10-01)
-`notice` Some improvements and fixes
-`fix` Issue [#28](https://github.com/ghostjuza/open-bushfire/issues/28)
-`fix` Issue [#36](https://github.com/ghostjuza/open-bushfire/issues/36) > Add new checkbox to enable/disable logging
+`notice` Some improvements and fixes  
+`fix` Issue [#28](https://github.com/ghostjuza/open-bushfire/issues/28)  
+`fix` Issue [#36](https://github.com/ghostjuza/open-bushfire/issues/36) > Add new checkbox to enable/disable logging  
 
-[Log] diabled: log absolute nothing
-[Log] enabled: log several informations and errors
+[Log] diabled: log absolute nothing  
+[Log] enabled: log several informations and errors  
 
-![Screenshot with new Log Checkbox](https://user-images.githubusercontent.com/1547159/193413507-ea0707d4-9848-4682-a8bc-9bb2a68de08f.png)
+![Screenshot with new Log Checkbox](https://user-images.githubusercontent.com/1547159/193413507-ea0707d4-9848-4682-a8bc-9bb2a68de08f.png)  
 
 ### Build 2022.77 (2022-09-20)
-`fix` Issue [#23](https://github.com/ghostjuza/open-bushfire/issues/23)
-`fix` Issue [#31](https://github.com/ghostjuza/open-bushfire/issues/31)
+`fix` Issue [#23](https://github.com/ghostjuza/open-bushfire/issues/23)  
+`fix` Issue [#31](https://github.com/ghostjuza/open-bushfire/issues/31)  
 
 ### Build 2022.71 (2022-09-19)
-`fix` Delete local storage files
+`fix` Delete local storage files  
 
 ### Build 2022.28 (2022-05-14)
 `fix` Issue [#19](https://github.com/ghostjuza/open-bushfire/issues/19) (icew4y)  
-`notice` Raise minimum macOS version 10.11
+`notice` Raise minimum macOS version 10.11  
 
 ### Build 2022.22 (2022-05-12)
 `fix` the correct target system.  
@@ -33,7 +33,7 @@
 
 ### Build 2022.16 (2022-05-11)
 `fix` Service call.  
-`notice` Raise minimum macOS version 10.11
+`notice` Raise minimum macOS version 10.11  
 
 ### Build 2022.10 (2022-05-11)
 `fix` Issue [#17](https://github.com/ghostjuza/open-bushfire/issues/17) (icew4y)  
