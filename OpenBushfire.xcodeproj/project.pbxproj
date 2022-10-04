@@ -46,8 +46,8 @@
 		32F472B7165A5F9A0008EE9A /* btn_ok_default_pressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 2CFD3ABC158DED72004C1AA9 /* btn_ok_default_pressed.png */; };
 		32F472BB165A5F9A0008EE9A /* btn_close_about.png in Resources */ = {isa = PBXBuildFile; fileRef = E1BF0435159BA119004EE3F7 /* btn_close_about.png */; };
 		32F472BC165A5F9A0008EE9A /* btn_close_about_pressed.png in Resources */ = {isa = PBXBuildFile; fileRef = E1BF0436159BA119004EE3F7 /* btn_close_about_pressed.png */; };
-		E1248AA723DCC19C00C3C79A /* Curl.h in Sources */ = {isa = PBXBuildFile; fileRef = E1248AA623DCC19C00C3C79A /* Curl.h */; };
-		E1248AA923DCC20900C3C79A /* Curl.m in Sources */ = {isa = PBXBuildFile; fileRef = E1248AA823DCC20900C3C79A /* Curl.m */; };
+		E12837D928EB8ECE00DDC6A7 /* Json.m in Sources */ = {isa = PBXBuildFile; fileRef = E12837D728EB8ECE00DDC6A7 /* Json.m */; };
+		E12837DC28EB8F3500DDC6A7 /* Curl.m in Sources */ = {isa = PBXBuildFile; fileRef = E12837DA28EB8F3500DDC6A7 /* Curl.m */; };
 		E14CA1811CA17A8100E49EB1 /* dsa_pub_bf.pem in Resources */ = {isa = PBXBuildFile; fileRef = E14CA1801CA17A8100E49EB1 /* dsa_pub_bf.pem */; };
 		E15F259222764F090081BF8A /* paypal-donate-btn.png in Resources */ = {isa = PBXBuildFile; fileRef = E15F259122764F090081BF8A /* paypal-donate-btn.png */; };
 		E15F259522765E010081BF8A /* paypal-donate-btn@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E15F259422765E010081BF8A /* paypal-donate-btn@2x.png */; };
@@ -167,8 +167,10 @@
 		32CA013C1715D9B800D39869 /* SettingCheckboxCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SettingCheckboxCell.h; sourceTree = "<group>"; };
 		32CA013D1715D9B800D39869 /* SettingCheckboxCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SettingCheckboxCell.m; sourceTree = "<group>"; };
 		32F472D1165A5F9A0008EE9A /* Bushfire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bushfire.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E1248AA623DCC19C00C3C79A /* Curl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Curl.h; path = Controller/Curl.h; sourceTree = "<group>"; };
-		E1248AA823DCC20900C3C79A /* Curl.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Curl.m; sourceTree = "<group>"; };
+		E12837D728EB8ECE00DDC6A7 /* Json.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Json.m; path = Categories/Json.m; sourceTree = "<group>"; };
+		E12837D828EB8ECE00DDC6A7 /* Json.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Json.h; path = Categories/Json.h; sourceTree = "<group>"; };
+		E12837DA28EB8F3500DDC6A7 /* Curl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Curl.m; path = Categories/Curl.m; sourceTree = "<group>"; };
+		E12837DB28EB8F3500DDC6A7 /* Curl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Curl.h; path = Categories/Curl.h; sourceTree = "<group>"; };
 		E14CA1801CA17A8100E49EB1 /* dsa_pub_bf.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub_bf.pem; sourceTree = "<group>"; };
 		E14F401E22772E8700081BFA /* releasenotes.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = releasenotes.md; sourceTree = "<group>"; };
 		E15F259122764F090081BF8A /* paypal-donate-btn.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "paypal-donate-btn.png"; sourceTree = "<group>"; };
@@ -235,12 +237,14 @@
 		2CA68A84158D068400D16086 /* Categories */ = {
 			isa = PBXGroup;
 			children = (
-				E1248AA623DCC19C00C3C79A /* Curl.h */,
-				E1248AA823DCC20900C3C79A /* Curl.m */,
-				2CA68A85158D069D00D16086 /* NSButton+TextColor.h */,
-				2CA68A86158D069D00D16086 /* NSButton+TextColor.m */,
+				E12837DB28EB8F3500DDC6A7 /* Curl.h */,
+				E12837DA28EB8F3500DDC6A7 /* Curl.m */,
 				E18C608D1CF1A72B00D4EA49 /* Helper.h */,
 				E18C608B1CF1A70C00D4EA49 /* Helper.m */,
+				E12837D828EB8ECE00DDC6A7 /* Json.h */,
+				E12837D728EB8ECE00DDC6A7 /* Json.m */,
+				2CA68A85158D069D00D16086 /* NSButton+TextColor.h */,
+				2CA68A86158D069D00D16086 /* NSButton+TextColor.m */,
 			);
 			name = Categories;
 			sourceTree = "<group>";
@@ -328,11 +332,11 @@
 		3246950C158A67CB00D18DE0 /* Delegate */ = {
 			isa = PBXGroup;
 			children = (
-				32469526158A697000D18DE0 /* MenubarController.h */,
-				32469527158A697000D18DE0 /* MenubarController.m */,
 				3246950D158A67CB00D18DE0 /* AppDelegate.h */,
 				3246950E158A67CB00D18DE0 /* AppDelegate.m */,
 				32AC3193158B9CA3002C81D4 /* MainMenu.xib */,
+				32469526158A697000D18DE0 /* MenubarController.h */,
+				32469527158A697000D18DE0 /* MenubarController.m */,
 			);
 			name = Delegate;
 			path = ../Delegate;
@@ -438,10 +442,10 @@
 		326A1A16158E662F00F3ABDA /* Cell */ = {
 			isa = PBXGroup;
 			children = (
-				32200466158CD7A40066992C /* ImagePreviewCell.h */,
-				32200467158CD7A40066992C /* ImagePreviewCell.m */,
 				32200482158D0A530066992C /* CheckboxCell.h */,
 				32200483158D0A530066992C /* CheckboxCell.m */,
+				32200466158CD7A40066992C /* ImagePreviewCell.h */,
+				32200467158CD7A40066992C /* ImagePreviewCell.m */,
 				32CA013C1715D9B800D39869 /* SettingCheckboxCell.h */,
 				32CA013D1715D9B800D39869 /* SettingCheckboxCell.m */,
 			);
@@ -461,16 +465,16 @@
 		326A1A18158E665600F3ABDA /* Base */ = {
 			isa = PBXGroup;
 			children = (
-				32469516158A688F00D18DE0 /* StatusItemView.h */,
-				32469517158A688F00D18DE0 /* StatusItemView.m */,
-				32469518158A688F00D18DE0 /* BackgroundView.h */,
-				32469519158A688F00D18DE0 /* BackgroundView.m */,
 				2CFD3AB8158DE54E004C1AA9 /* AboutView.h */,
 				2CFD3AB9158DE54F004C1AA9 /* AboutView.m */,
-				328DD2141714B0D50054E29E /* LineView.h */,
-				328DD2151714B0D50054E29E /* LineView.m */,
+				32469518158A688F00D18DE0 /* BackgroundView.h */,
+				32469519158A688F00D18DE0 /* BackgroundView.m */,
 				32CA01391715D7F200D39869 /* DarkLineView.h */,
 				32CA013A1715D7F200D39869 /* DarkLineView.m */,
+				328DD2141714B0D50054E29E /* LineView.h */,
+				328DD2151714B0D50054E29E /* LineView.m */,
+				32469516158A688F00D18DE0 /* StatusItemView.h */,
+				32469517158A688F00D18DE0 /* StatusItemView.m */,
 			);
 			name = Base;
 			sourceTree = "<group>";
@@ -526,6 +530,7 @@
 				LastUpgradeCheck = 1330;
 				TargetAttributes = {
 					32F47289165A5F9A0008EE9A = {
+						DevelopmentTeam = V67A8H8669;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -625,12 +630,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				32F4728D165A5F9A0008EE9A /* main.m in Sources */,
-				E1248AA923DCC20900C3C79A /* Curl.m in Sources */,
 				32F4728E165A5F9A0008EE9A /* AppDelegate.m in Sources */,
 				32F4728F165A5F9A0008EE9A /* SweeperManager.m in Sources */,
 				32F47290165A5F9A0008EE9A /* Panel.m in Sources */,
 				32F47291165A5F9A0008EE9A /* StatusItemView.m in Sources */,
 				32F47292165A5F9A0008EE9A /* BackgroundView.m in Sources */,
+				E12837D928EB8ECE00DDC6A7 /* Json.m in Sources */,
 				32F47293165A5F9A0008EE9A /* MenubarController.m in Sources */,
 				32F47294165A5F9A0008EE9A /* PanelController.m in Sources */,
 				32F47295165A5F9A0008EE9A /* Settings.m in Sources */,
@@ -643,7 +648,7 @@
 				32F4729B165A5F9A0008EE9A /* AboutView.m in Sources */,
 				326208D8165B78A200DAC62D /* Reachability.m in Sources */,
 				328DD2171714B0D50054E29E /* LineView.m in Sources */,
-				E1248AA723DCC19C00C3C79A /* Curl.h in Sources */,
+				E12837DC28EB8F3500DDC6A7 /* Curl.m in Sources */,
 				32CA013F1715D9BF00D39869 /* DarkLineView.m in Sources */,
 				32CA01401715D9C300D39869 /* SettingCheckboxCell.m in Sources */,
 			);
@@ -783,10 +788,10 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = V67A8H8669;
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -813,10 +818,10 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = V67A8H8669;
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",

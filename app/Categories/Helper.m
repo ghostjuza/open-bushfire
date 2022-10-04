@@ -1,5 +1,6 @@
-#import <Foundation/Foundation.h>
 #import "Helper.h"
+
+#import <Foundation/Foundation.h>
 #import "Curl.h"
 #import "SweeperManager.h"
 #import "Settings.h"
@@ -381,6 +382,7 @@ static NSFileManager *fileManager = nil;
             @"kill -9 `ps aux | grep '/nsurlstoraged' | awk '{print $1, $2, $7}' | grep ' ??' | awk '{print $1, $2}' | grep -v '_nsurlstoraged ' | awk '{print $2}' | tr '\n' ' '`"
             logMessage:message
         ];
+        unloadOnly = true;
     }
     else {
         #if DEBUG == 1

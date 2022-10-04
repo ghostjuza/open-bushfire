@@ -41,7 +41,7 @@ static NSFileManager *fileManager = nil;
         [Helper log:LOG_WARNING withMessage:@"Create cleanup que: failed."];
         return;
     }
-
+    
     [[AppDelegate getMenubarController] setCleanIcon];
 
     dispatch_queue_t queue = dispatch_queue_create("app.bushfire.CleanupQueue", NULL);
