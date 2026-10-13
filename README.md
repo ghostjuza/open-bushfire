@@ -26,7 +26,7 @@ Currently it runs up macOS 10.11 to 12.x.
 [Release Notes](https://github.com/ghostjuza/open-bushfire/releases)  
 [Legacy Release Notes](https://github.com/ghostjuza/open-bushfire/blob/master/releasenotes.md)  
 
-Twitter: [bushfireapp](https://twitter.com/bushfireapp)  
+X (Twitter): [bushfireapp](https://x.com/bushfireapp)  
 Discord: [Open Bushfire App](https://discord.gg/pcw93z63Eh)  
 
 ## Guides
