@@ -42,6 +42,7 @@
     // (macOS 11) keine brauchbare Position liefert
     _lastClickLocation = [NSEvent mouseLocation];
     _lastClickTime     = [NSDate timeIntervalSinceReferenceDate];
+    NSLog(@"Bushfire: Statusitem-Klick, Event-Typ %ld", (long)[[NSApp currentEvent] type]);
     
     [NSApp sendAction:self.action to:self.target from:self];
 }

@@ -168,6 +168,7 @@
 		32CA013C1715D9B800D39869 /* SettingCheckboxCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SettingCheckboxCell.h; sourceTree = "<group>"; };
 		32CA013D1715D9B800D39869 /* SettingCheckboxCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SettingCheckboxCell.m; sourceTree = "<group>"; };
 		32F472D1165A5F9A0008EE9A /* Bushfire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bushfire.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E11EE3DB30A36730004C15CF /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		E12837D728EB8ECE00DDC6A7 /* Json.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Json.m; path = Categories/Json.m; sourceTree = "<group>"; };
 		E12837D828EB8ECE00DDC6A7 /* Json.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Json.h; path = Categories/Json.h; sourceTree = "<group>"; };
 		E12837DA28EB8F3500DDC6A7 /* Curl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Curl.m; path = Categories/Curl.m; sourceTree = "<group>"; };
@@ -263,6 +264,7 @@
 				E185D11D23D48BE600B2737A /* README.md */,
 				E14F401E22772E8700081BFA /* releasenotes.md */,
 				3231E04D1587AFE500FDE7F3 /* Products */,
+				E11EE3DB30A36730004C15CF /* .gitignore */,
 			);
 			sourceTree = "<group>";
 		};
