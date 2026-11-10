@@ -4,6 +4,7 @@
 + (void)disableLoginItemWithLoginItemsReference:(LSSharedFileListRef )theLoginItemsRefs ForPath:(NSString *)appPath;
 + (BOOL)loginItemExistsWithLoginItemReference:(LSSharedFileListRef)theLoginItemsRefs ForPath:(NSString *)appPath;
 + (BOOL)isLaunchAtStartup;
++ (NSString *)launchAgentPath;
 + (void)toggleLaunchAtStartup;
 
 @end

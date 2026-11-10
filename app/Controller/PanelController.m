@@ -10,6 +10,10 @@
 #import "SettingCheckboxCell.h"
 #import "SweeperManager.h"
 #import "Helper.h"
+#import "Panel.h"
+#import "LineView.h"
+#import "DarkLineView.h"
+#import "NSButton+TextColor.h"
 
 #include <syslog.h>
 
@@ -20,6 +24,8 @@
 #define POPUP_HEIGHT_CLOSED 76
 #define PANEL_WIDTH 305
 #define ROW_HEIGHT 32
+#define DESIGN_HEIGHT 546  // Hoehe des Fensters in Panel.xib
+#define DATACOUNT_Y -3     // feste y-Position des Textfelds "75 / 77 Objekte"
 
 enum {
     SettingsModeCache               = 0,
@@ -39,27 +45,37 @@ enum {
 } SettingsMode;
 
 
+// Container mit Ursprung oben links: alle Positionen im Panel sind "Abstand von oben"
+@interface BFFlippedView : NSView
+@end
+
+@implementation BFFlippedView
+- (BOOL)isFlipped { return YES; }
+@end
+
+
 @interface PanelController()
 
-@property (nonatomic, assign) IBOutlet BackgroundView *a_backgroundView;
-@property (nonatomic, retain) IBOutlet NSView   *a_settingsView;
-@property (nonatomic, retain) IBOutlet NSButton *a_btnSettings;
-@property (nonatomic, retain) IBOutlet NSButton *a_btnBurnNow;
-@property (nonatomic, retain) IBOutlet NSButton *a_btnCleanActive;
-@property (nonatomic, retain) IBOutlet NSButton *a_btnSettingsAbout;
-@property (nonatomic, retain) IBOutlet NSButton *a_btnSettingsQuit;
-@property (nonatomic, retain) IBOutlet NSButton *a_btnUpdateCheck;
-@property (nonatomic, retain) IBOutlet NSButton *a_chkStartup;
-@property (nonatomic, retain) IBOutlet NSButton *a_btnCleanSecureActive;
-@property (nonatomic, retain) IBOutlet NSButton *a_btnLogEnabled;
-@property (nonatomic, retain) IBOutlet NSTextField *TfDataCountSize;
+@property (nonatomic, assign) BackgroundView *a_backgroundView;
+@property (nonatomic, retain) NSView   *a_settingsView;
+@property (nonatomic, retain) NSButton *a_btnSettings;
+@property (nonatomic, retain) NSButton *a_btnBurnNow;
+@property (nonatomic, retain) NSButton *a_btnCleanActive;
+@property (nonatomic, retain) NSButton *a_btnSettingsAbout;
+@property (nonatomic, retain) NSButton *a_btnSettingsQuit;
+@property (nonatomic, retain) NSButton *a_btnUpdateCheck;
+@property (nonatomic, retain) NSButton *a_chkStartup;
+@property (nonatomic, retain) NSButton *a_btnCleanSecureActive;
+@property (nonatomic, retain) NSButton *a_btnLogEnabled;
+@property (nonatomic, retain) NSTextField *TfDataCountSize;
 
 // 10.6 workaround 
-@property (assign) IBOutlet NSView *a_containerView;
+@property (assign) NSView *a_containerView;
 
 @property (nonatomic, retain) Settings *a_settings;
 @property (nonatomic, retain) AboutWindowController *a_aboutWindowController;
 @property (nonatomic, retain) NSMutableArray *a_tableRows;
+@property (nonatomic, retain) NSView *a_overlay;
 
 - (void)openPanel;
 - (void)closePanel;
@@ -98,8 +114,11 @@ enum {
 @synthesize a_btnUpdateCheck        = _a_btnUpdateCheck;
 @synthesize a_containerView         = _a_containerView;
 @synthesize TfDataCountSize         = _TfDataCountSize;
+@synthesize a_overlay               = _a_overlay;
 
 
+// Animationen sind bewusst abgeschaltet: animator mit Dauer 0 laesst Alpha/Frame
+// unter macOS 11 in Zwischenzustaenden haengen (Panel bleibt halb transparent).
 static bool ANIMATE = false;
 
 
@@ -107,7 +126,8 @@ static bool ANIMATE = false;
 
 - (id)initWithDelegate:(id<PanelControllerDelegate>)delegate
 {
-    if ((self = [super initWithWindowNibName:@"Panel"])) {
+    if ((self = [super initWithWindow:[PanelController createPanelWindow]])) {
+        [[self window] setDelegate:self];
         _Delegate    = delegate;
         _a_tableRows = [[NSMutableArray alloc] initWithObjects:
             [NSDictionary dictionaryWithObjectsAndKeys:NSLocalizedString(@"cookies",nil), @"title", [NSNumber numberWithInt:SettingsModeCookies], @"tag", nil],
@@ -129,6 +149,7 @@ static bool ANIMATE = false;
             nil
         ];
         self.a_settings = [Settings settingsFromDefaults];
+        [self buildInterface];
     }
     
     return self;
@@ -138,6 +159,7 @@ static bool ANIMATE = false;
 - (void)dealloc
 {
     [_a_tableRows release];
+    [_a_overlay release];
     [_a_aboutWindowController release];
     [_a_settingsView release];
     [_a_btnSettings release];
@@ -148,101 +170,228 @@ static bool ANIMATE = false;
     [_a_btnSettingsAbout release];
     [_a_btnSettingsQuit release];
     [_a_chkStartup release];
-    [_a_containerView release];
     [_TfDataCountSize release];
     
     [super dealloc];
 }
 
 
-- (void)awakeFromNib
+#pragma mark - UI aufbauen (ohne XIB)
+
++ (NSPanel *)createPanelWindow
 {
-    [super awakeFromNib];
-    
-//    ANIMATE = ([Helper getOSVersion] >= 1015 ? YES : NO); //@available(macOS 10.15, *)
-    ANIMATE = (@available(macOS 10.15, *) ? YES : NO);
-    
-    // Make a fully skinned panel
-    NSPanel *panel = (id) [self window];
+    NSRect rect = NSMakeRect(0, 0, PANEL_WIDTH, POPUP_HEIGHT_CLOSED);
+    Panel *panel = [[Panel alloc] initWithContentRect:rect
+                                            styleMask:(NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel)
+                                              backing:NSBackingStoreBuffered
+                                                defer:NO];
+    [panel setReleasedWhenClosed:NO];
+    [panel setAnimationBehavior:NSWindowAnimationBehaviorNone];
+    [panel setCollectionBehavior:(NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorIgnoresCycle)];
     [panel setAcceptsMouseMovedEvents:YES];
     [panel setFloatingPanel:NO];
     [panel setLevel:NSTornOffMenuWindowLevel];
     [panel setOpaque:NO];
     [panel setBackgroundColor:[NSColor clearColor]];
+    [panel setHasShadow:YES];
+    [panel setMovable:NO];
+    // Dunkles Erscheinungsbild: Checkboxen und Text passen zum dunklen Hintergrund
+    [panel setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua]];
     
-    // Resize panel
-    NSRect panelRect = [[self window] frame];
-    panelRect.size.height = (self.a_settings.CleanActive ? POPUP_HEIGHT + (ROW_HEIGHT * self.a_tableRows.count) : POPUP_HEIGHT_CLOSED);
-    [[self window] setFrame:panelRect display:NO];
+    BackgroundView *background = [[BackgroundView alloc] initWithFrame:rect];
+    [background setAutoresizesSubviews:NO];
+    [panel setContentView:background];
+    [background release];
     
-    // set translations
-    [self.a_btnSettingsQuit setTitle:NSLocalizedString(@"quit", nil)];
-    [self.a_btnSettingsAbout setTitle:NSLocalizedString(@"about", nil)];
-    [self.a_btnUpdateCheck setTitle:NSLocalizedString(@"update", nil)];
-    [self.a_chkStartup setTitle:NSLocalizedString(@"start_logon", nil)];
+    return [panel autorelease];
+}
+
+
+- (NSAttributedString *)whiteTitle:(NSString *)title font:(NSFont *)font alignment:(NSTextAlignment)alignment
+{
+    NSMutableParagraphStyle *style = [[[NSMutableParagraphStyle alloc] init] autorelease];
+    [style setAlignment:alignment];
+    NSDictionary *attrs = [NSDictionary dictionaryWithObjectsAndKeys:
+                           [NSColor whiteColor], NSForegroundColorAttributeName,
+                           font, NSFontAttributeName,
+                           style, NSParagraphStyleAttributeName,
+                           nil];
+    return [[[NSAttributedString alloc] initWithString:(title ? title : @"") attributes:attrs] autorelease];
+}
+
+
+- (NSButton *)checkboxWithFrame:(NSRect)frame title:(NSString *)title bold:(BOOL)bold action:(SEL)action
+{
+    NSButton *button = [[[NSButton alloc] initWithFrame:frame] autorelease];
+    [button setButtonType:NSButtonTypeSwitch];
+    NSFont *font = (bold ? [NSFont boldSystemFontOfSize:13] : [NSFont systemFontOfSize:13]);
+    [button setAttributedTitle:[self whiteTitle:title font:font alignment:NSTextAlignmentLeft]];
+    [button setTarget:self];
+    [button setAction:action];
+    return button;
+}
+
+
+- (NSButton *)iconButtonWithFrame:(NSRect)frame image:(NSString *)image pressed:(NSString *)pressed action:(SEL)action
+{
+    NSButton *button = [[[NSButton alloc] initWithFrame:frame] autorelease];
+    [button setButtonType:NSButtonTypeMomentaryChange];
+    [button setBordered:NO];
+    [button setImagePosition:NSImageOnly];
+    [button setImageScaling:NSImageScaleProportionallyDown];
+    [button setImage:[NSImage imageNamed:image]];
+    [button setAlternateImage:[NSImage imageNamed:pressed]];
+    [button setTarget:self];
+    [button setAction:action];
+    return button;
+}
+
+
+- (NSButton *)pillButtonWithFrame:(NSRect)frame title:(NSString *)title action:(SEL)action
+{
+    NSButton *button = [[[NSButton alloc] initWithFrame:frame] autorelease];
+    [button setButtonType:NSButtonTypeMomentaryChange];
+    [button setBordered:NO];
+    [button setImagePosition:NSImageOverlaps];
+    [button setImageScaling:NSImageScaleAxesIndependently];
+    [button setImage:[NSImage imageNamed:@"btn_ok_default"]];
+    [button setAlternateImage:[NSImage imageNamed:@"btn_ok_default_pressed"]];
+    [button setAttributedTitle:[self whiteTitle:title font:[NSFont systemFontOfSize:12] alignment:NSTextAlignmentCenter]];
+    [button setTarget:self];
+    [button setAction:action];
+    return button;
+}
+
+
+- (void)buildInterface
+{
+    NSView *content = [[self window] contentView];
+    self.a_backgroundView = (BackgroundView *)content;
     
-    // Set text colors
-    [self.a_btnUpdateCheck setTextColor:[NSColor whiteColor]];
-    [self.a_btnSettingsAbout setTextColor:[NSColor whiteColor]];
-    [self.a_btnSettingsQuit setTextColor:[NSColor whiteColor]];
-    [self.a_chkStartup setTextColor:[NSColor whiteColor]];
+    // Overlay mit Ursprung oben links
+    BFFlippedView *overlay = [[[BFFlippedView alloc] initWithFrame:[content bounds]] autorelease];
+    self.a_overlay = overlay;
+    [content addSubview:overlay];
     
-    [self.a_btnSettings.cell setShowsStateBy:NSPushInCellMask]; 
-    [self.a_btnSettings.cell setHighlightsBy:NSContentsCellMask];
+    // --- Kopfzeile ---
+    self.a_btnCleanActive = [self checkboxWithFrame:NSMakeRect(12, 21, 215, 18) title:NSLocalizedString(@"clean_active", nil) bold:YES action:@selector(actionCleanActive:)];
+    [self.a_btnCleanActive setState:self.a_settings.CleanActive];
+    [overlay addSubview:self.a_btnCleanActive];
     
-    [self.a_btnSettingsAbout.cell setShowsStateBy:NSPushInCellMask];
-    [self.a_btnSettingsAbout.cell setHighlightsBy:NSContentsCellMask];
+    self.a_chkStartup = [self checkboxWithFrame:NSMakeRect(12, 21, 250, 18) title:NSLocalizedString(@"start_logon", nil) bold:YES action:@selector(actionToggleLoginItems:)];
+    [self.a_chkStartup setHidden:YES];
+    [overlay addSubview:self.a_chkStartup];
     
-    [self.a_btnSettingsQuit.cell setShowsStateBy:NSPushInCellMask]; 
-    [self.a_btnSettingsQuit.cell setHighlightsBy:NSContentsCellMask];
+    self.a_btnBurnNow = [self iconButtonWithFrame:NSMakeRect(231, 14, 32, 32) image:@"btn_burn_now" pressed:@"btn_burn_now_pressed" action:@selector(actionBurnNow:)];
+    [overlay addSubview:self.a_btnBurnNow];
     
-    [self.a_btnUpdateCheck.cell setShowsStateBy:NSPushInCellMask];
-    [self.a_btnUpdateCheck.cell setHighlightsBy:NSContentsCellMask];
+    self.a_btnSettings = [self iconButtonWithFrame:NSMakeRect(261, 14, 32, 32) image:@"btn_settings" pressed:@"btn_settings_pressed" action:@selector(actionSettings:)];
+    [overlay addSubview:self.a_btnSettings];
     
-    [self.a_btnCleanSecureActive setIntValue:self.a_settings.CleanSecureActive];
-    [self.a_btnCleanSecureActive setTitle:NSLocalizedString(@"clean_secure_active", nil)];
+    // --- Liste mit Einstellungen (Zeilen + Trennlinien) ---
+    BFFlippedView *container = [[[BFFlippedView alloc] initWithFrame:NSMakeRect(0, 0, PANEL_WIDTH, POPUP_HEIGHT + ROW_HEIGHT * self.a_tableRows.count)] autorelease];
+    self.a_containerView = container;
+    [overlay addSubview:container];
     
-    [self.a_btnLogEnabled setIntValue:self.a_settings.LogEnabled];
-    [self.a_btnLogEnabled setTitle:NSLocalizedString(@"log_enabled", nil)];
-    
-    [self.a_btnCleanActive setIntValue:self.a_settings.CleanActive];
-    [self.a_btnCleanActive setTitle:NSLocalizedString(@"clean_active", nil)];
-    
-    
-    NSString * appPath = [[NSBundle mainBundle] bundlePath];
-    LSSharedFileListRef loginItems = LSSharedFileListCreate(NULL, kLSSharedFileListSessionLoginItems, NULL);
-    
-    if (loginItems) {
-        [self.a_chkStartup setState:[LoginItemManager loginItemExistsWithLoginItemReference:loginItems ForPath:appPath]];
-        CFRelease(loginItems);
-    }
-    
-    [self.a_containerView setHidden:!self.a_settings.CleanActive];
-    
-    int current = 0;
+    CGFloat listTop = 45.0;
+    NSUInteger current = 0;
     
     for (NSDictionary *settingDict in self.a_tableRows)
     {
-        int settingBtnOriginY   = (int) (-16 + [self.a_tableRows count] * ROW_HEIGHT - current * ROW_HEIGHT);
-        NSButton *settingButton = [[NSButton alloc] initWithFrame:NSMakeRect(12, settingBtnOriginY, PANEL_WIDTH - 20, ROW_HEIGHT)];
-        settingButton.tag       = [[settingDict objectForKey:@"tag"] integerValue];
-
-        [settingButton setCell:[[SettingCheckboxCell alloc] init]];
-        [settingButton setAction:@selector(setSettingForRow:)];
-        [settingButton setButtonType:NSSwitchButton];
-        [settingButton setBezelStyle:0];
-        [settingButton setState:[self isSettingActiveForRow:[[settingDict objectForKey:@"tag"] integerValue]]];
-
-        [settingButton.cell setTitle:[settingDict objectForKey:@"title"]];
-        [settingButton.cell setShowsStateBy:NSContentsCellMask];
-        [settingButton.cell setHighlightsBy:NSContentsCellMask];
-        [settingButton.cell setButtonType:NSMomentaryPushInButton];
-        [settingButton.cell setBackgroundColor:[NSColor clearColor]];
-
-        [self.a_containerView addSubview:settingButton];
+        CGFloat rowY = listTop + current * ROW_HEIGHT;
+        NSInteger tag = [[settingDict objectForKey:@"tag"] integerValue];
         
+        NSButton *settingButton = [self checkboxWithFrame:NSMakeRect(12, rowY + 7, PANEL_WIDTH - 24, 18)
+                                                    title:[settingDict objectForKey:@"title"]
+                                                     bold:NO
+                                                   action:@selector(setSettingForRow:)];
+        settingButton.tag = tag;
+        [settingButton setState:[self isSettingActiveForRow:tag]];
+        [container addSubview:settingButton];
+        
+        // Trennlinie unter der Zeile (dunkel + hell), nicht nach der letzten Zeile
+        if (current + 1 < [self.a_tableRows count]) {
+            DarkLineView *dark = [[[DarkLineView alloc] initWithFrame:NSMakeRect(1, rowY + ROW_HEIGHT - 1, PANEL_WIDTH - 2, 1)] autorelease];
+            LineView *light    = [[[LineView alloc] initWithFrame:NSMakeRect(1, rowY + ROW_HEIGHT, PANEL_WIDTH - 2, 1)] autorelease];
+            [container addSubview:dark];
+            [container addSubview:light];
+        }
         current++;
     }
+    
+    // --- Einstellungsseite (Zahnrad) ---
+    BFFlippedView *settingsView = [[[BFFlippedView alloc] initWithFrame:NSMakeRect(0, 0, PANEL_WIDTH, POPUP_HEIGHT_SMALL)] autorelease];
+    self.a_settingsView = settingsView;
+    [settingsView setHidden:YES];
+    [overlay addSubview:settingsView];
+    
+    self.a_btnCleanSecureActive = [self checkboxWithFrame:NSMakeRect(12, 53, 200, 18) title:NSLocalizedString(@"clean_secure_active", nil) bold:NO action:@selector(actionCleanSecureActive:)];
+    [self.a_btnCleanSecureActive setState:self.a_settings.CleanSecureActive];
+    [settingsView addSubview:self.a_btnCleanSecureActive];
+    
+    self.a_btnLogEnabled = [self checkboxWithFrame:NSMakeRect(225, 53, 70, 18) title:NSLocalizedString(@"log_enabled", nil) bold:NO action:@selector(actionLogEnable:)];
+    [self.a_btnLogEnabled setState:self.a_settings.LogEnabled];
+    [settingsView addSubview:self.a_btnLogEnabled];
+    
+    self.a_btnUpdateCheck = [self pillButtonWithFrame:NSMakeRect(65, 93, 175, 20) title:NSLocalizedString(@"update", nil) action:@selector(actionUpdateCheck:)];
+    [settingsView addSubview:self.a_btnUpdateCheck];
+    
+    self.a_btnSettingsQuit = [self pillButtonWithFrame:NSMakeRect(65, 121, 175, 20) title:NSLocalizedString(@"quit", nil) action:@selector(actionSettingsQuit:)];
+    [settingsView addSubview:self.a_btnSettingsQuit];
+    
+    self.a_btnSettingsAbout = [self pillButtonWithFrame:NSMakeRect(65, POPUP_HEIGHT_SMALL - 26, 175, 20) title:NSLocalizedString(@"about", nil) action:@selector(actionSettingsAbout:)];
+    [settingsView addSubview:self.a_btnSettingsAbout];
+    
+    // --- Fußzeile: Anzahl / Größe ---
+    NSTextField *label = [[[NSTextField alloc] initWithFrame:NSMakeRect(3, 0, PANEL_WIDTH - 6, 14)] autorelease];
+    [label setBezeled:NO];
+    [label setBordered:NO];
+    [label setDrawsBackground:NO];
+    [label setEditable:NO];
+    [label setSelectable:NO];
+    [label setAlignment:NSTextAlignmentCenter];
+    [label setFont:[NSFont systemFontOfSize:11]];
+    [label setTextColor:[NSColor whiteColor]];
+    [label setStringValue:@""];
+    self.TfDataCountSize = label;
+    [overlay addSubview:label];
+    
+    // Startzustand
+    [self.a_btnBurnNow setHidden:!self.a_settings.CleanActive];
+    [self.a_containerView setHidden:!self.a_settings.CleanActive];
+    
+    [self.a_chkStartup setState:([LoginItemManager isLaunchAtStartup] ? NSControlStateValueOn : NSControlStateValueOff)];
+    
+    NSRect panelRect = [[self window] frame];
+    panelRect.size.height = (self.a_settings.CleanActive ? POPUP_HEIGHT + (ROW_HEIGHT * self.a_tableRows.count) : POPUP_HEIGHT_CLOSED);
+    [[self window] setFrame:panelRect display:NO];
+    [self layoutPanelForHeight:panelRect.size.height];
+}
+
+
+- (void)loadWindow
+{
+    // Fenster wurde bereits im Initializer erzeugt (kein Nib)
+}
+
+
+- (void)windowDidLoad
+{
+    [super windowDidLoad];
+}
+
+
+/**
+ Positioniert Overlay und Fußzeile fuer die aktuelle Fensterhoehe.
+ Alle anderen Elemente haben feste Abstaende von oben (Overlay ist "flipped").
+ */
+- (void)layoutPanelForHeight:(CGFloat)height
+{
+    if (self.a_overlay == nil) {
+        return;
+    }
+    [self.a_overlay setFrame:NSMakeRect(0, 0, PANEL_WIDTH, height)];
+    [self.TfDataCountSize setFrame:NSMakeRect(3, height - 23, PANEL_WIDTH - 6, 14)];
 }
 
 
@@ -293,48 +442,43 @@ static bool ANIMATE = false;
 
 - (void)windowDidResize:(NSNotification *)notification
 {
-    NSWindow *panel   = [self window];
-    NSRect statusRect = [self statusRectForWindow:panel];
-    NSRect panelRect  = [panel frame];
-    CGFloat statusX   = roundf(NSMidX(statusRect));
-    CGFloat panelX    = statusX - NSMinX(panelRect);
-        
-    self.a_backgroundView.arrowX = panelX;
-    
-    if (@available(macOS 10.15, *)) {
-        self.a_backgroundView.arrowX += 8;
+    [self layoutPanelForHeight:NSHeight([[[self window] contentView] frame])];
+}
+
+
+/**
+ setzt die Panel-Spitze mittig unter das Statusleisten-Icon.
+ Muss bei jedem Positionieren aufgerufen werden: windowDidResize feuert nicht, wenn sich nur die Position aendert.
+ */
+- (void)updateArrowForPanelRect:(NSRect)panelRect statusRect:(NSRect)statusRect
+{
+    CGFloat statusX = roundf(NSMidX(statusRect));
+    self.a_backgroundView.arrowX = (NSInteger) (statusX - NSMinX(panelRect));
+}
+
+
+/**
+ Bildschirm, auf dem das Panel erscheint (Fenster-Screen kann vor dem ersten Anzeigen nil sein)
+ */
+- (NSScreen *)screenForPanel:(NSWindow *)panel statusRect:(NSRect)statusRect
+{
+    NSScreen *screen = [panel screen];
+    if (screen == nil) {
+        NSPoint p = NSMakePoint(NSMidX(statusRect), NSMaxY(statusRect));
+        for (NSScreen *candidate in [NSScreen screens]) {
+            if (NSPointInRect(p, NSInsetRect([candidate frame], -1, -1))) {
+                screen = candidate;
+                break;
+            }
+        }
     }
+    return (screen != nil ? screen : [NSScreen mainScreen]);
 }
 
 
 -(void)locateFrameDataCountSize:(CGSize)size
 {
-    NSRect textFieldFrame = [self.TfDataCountSize frame];
-    int positionOffset = (int) -55;
-    
-//#if DEBUG == 1
-//    
-//    NSLog(@"CGSizeH [%d]", (int)size.height);
-//    NSLog(@"TfDataCountSize isHidden [%@]", ([[self TfDataCountSize] isHidden] ? @"Yes" : @"No"));
-//    NSLog(@"originTextRectY [%d] originTextRectH [%d]", (int)textFieldFrame.origin.y, (int)textFieldFrame.size.height);
-//    
-//#endif
-    
-    if (size.height == POPUP_HEIGHT_CLOSED) {
-        textFieldFrame.origin.y = positionOffset;
-    }
-    else {
-        int openPosition = (int) ((2 + ([self.a_tableRows count] * ROW_HEIGHT)) * (-1));
-        textFieldFrame.origin.y = openPosition + positionOffset;
-    }
-//    
-//#if DEBUG == 1
-//    
-//    NSLog(@"textRectY [%d] textRectX [%d]", (int)textFieldFrame.origin.y, (int)textFieldFrame.origin.x);
-//    
-//#endif
-    
-    [self.TfDataCountSize setFrame:textFieldFrame];
+    [self layoutPanelForHeight:size.height];
 }
 
 
@@ -385,8 +529,8 @@ static bool ANIMATE = false;
 {
     NSWindow *panel = [self window];
     
-    NSRect screenRect = [[panel screen] frame];
     NSRect statusRect = [self statusRectForWindow:panel];
+    NSRect screenRect = [[self screenForPanel:panel statusRect:statusRect] frame];
     
     NSRect panelRect     = [panel frame];
     panelRect.size.width = PANEL_WIDTH;
@@ -399,7 +543,8 @@ static bool ANIMATE = false;
     
     [NSApp activateIgnoringOtherApps:NO];
     [panel setAlphaValue:0];
-    [panel setFrame:statusRect display:YES];
+    [self updateArrowForPanelRect:panelRect statusRect:statusRect];
+    [panel setFrame:panelRect display:YES];
     [panel makeKeyAndOrderFront:nil];
     
     [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
@@ -413,7 +558,7 @@ static bool ANIMATE = false;
     else {
         NSTimeInterval openDuration = OPEN_DURATION;
         
-        if ([[NSApp currentEvent] type] == NSLeftMouseDown) {
+        if ([[NSApp currentEvent] type] == NSEventTypeLeftMouseDown) {
             openDuration = [self _getOpenDuaration];
         }
         
@@ -458,8 +603,8 @@ static bool ANIMATE = false;
 {
     NSWindow *panel   = [self window];
     
-    NSRect screenRect = [[panel screen] frame];
     NSRect statusRect = [self statusRectForWindow:panel];
+    NSRect screenRect = [[self screenForPanel:panel statusRect:statusRect] frame];
     
     NSRect panelRect      = [panel frame];
     panelRect.size.height = size.height;
@@ -479,28 +624,11 @@ static bool ANIMATE = false;
         [panel setAlphaValue:0];
     }
     
-    [panel setFrame:statusRect display:YES];
+    [self updateArrowForPanelRect:panelRect statusRect:statusRect];
+    [panel setFrame:panelRect display:YES];
+    [self locateFrameDataCountSize:panelRect.size];
     [panel makeKeyAndOrderFront:nil];
-    
-    // No animation
-    if (!ANIMATE) {
-        [self locateFrameDataCountSize:panelRect.size];
-        [panel setFrame:panelRect display:YES];
-        [panel setAlphaValue:alpha];
-    }
-    else {
-        //@TODO: This line of code is a workaround for locateFrameDataCountSize !!!
-        [panel setFrame:statusRect display:NO];
-        [self locateFrameDataCountSize:panelRect.size];
-
-        [NSAnimationContext beginGrouping];
-
-        [[NSAnimationContext currentContext] setDuration:CLOSE_DURATION];
-        [[panel animator] setFrame:panelRect display:YES];
-        [[panel animator] setAlphaValue:alpha];
-
-        [NSAnimationContext endGrouping];
-    }
+    [panel setAlphaValue:alpha];
 }
 
 
@@ -695,6 +823,7 @@ static bool ANIMATE = false;
         [self.a_btnCleanActive setHidden:YES];
         [self.a_containerView setHidden:YES];
         
+        [self.a_chkStartup setState:([LoginItemManager isLaunchAtStartup] ? NSControlStateValueOn : NSControlStateValueOff)];
         [self.a_chkStartup setHidden:NO];
         [self.a_settingsView setHidden:NO];
         
@@ -728,7 +857,7 @@ static bool ANIMATE = false;
 - (void) alertActionBurnNow
 {
     NSAlert *alert = [[[NSAlert alloc] init] autorelease];
-    [alert setAlertStyle:NSWarningAlertStyle];
+    [alert setAlertStyle:NSAlertStyleWarning];
     
     [alert addButtonWithTitle:NSLocalizedString(@"ok", nil)];
     [alert addButtonWithTitle:NSLocalizedString(@"cancel", nil)];
@@ -752,10 +881,10 @@ static bool ANIMATE = false;
     NSTimeInterval openDuration = OPEN_DURATION;
     
     NSEvent *currentEvent = [NSApp currentEvent];
-    NSUInteger clearFlags = ([currentEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask);
+    NSUInteger clearFlags = ([currentEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask);
     
-    BOOL shiftPressed = (clearFlags == NSShiftKeyMask);
-    BOOL shiftOptionPressed = (clearFlags == (NSShiftKeyMask | NSAlternateKeyMask));
+    BOOL shiftPressed = (clearFlags == NSEventModifierFlagShift);
+    BOOL shiftOptionPressed = (clearFlags == (NSEventModifierFlagShift | NSEventModifierFlagOption));
 
     if (shiftPressed || shiftOptionPressed) {
         openDuration *= 10;
@@ -862,7 +991,7 @@ static bool ANIMATE = false;
 - (IBAction)actionToggleLoginItems:(id)sender 
 {
     [LoginItemManager toggleLaunchAtStartup];
-    [self.a_chkStartup setState:[LoginItemManager isLaunchAtStartup]];
+    [self.a_chkStartup setState:([LoginItemManager isLaunchAtStartup] ? NSControlStateValueOn : NSControlStateValueOff)];
 }
 
 

@@ -1,4 +1,9 @@
-@interface StatusItemView : NSView {
+// Hinweis: Der Name bleibt aus Kompatibilitaetsgruenden erhalten. Die Klasse kapselt jetzt
+// den NSStatusItem-Button (statusItem.view ist seit macOS 10.14 deprecated und wird unter
+// macOS 11 falsch dargestellt/positioniert).
+@interface StatusItemView : NSObject {
+    NSPoint        _lastClickLocation;
+    NSTimeInterval _lastClickTime;
 }
 
 - (id)initWithStatusItem:(NSStatusItem *)statusItem;

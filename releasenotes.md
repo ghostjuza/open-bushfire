@@ -1,5 +1,11 @@
 # Release Notes
 
+### Build 2026.-- (2026-11-11)
+`notice` App is now properly signed and notarized;
+`notice` macOS 11.5 is now the minimum OS version;  
+
+---
+
 ### Build 2022.235 (2022-10-02)
 `improved` handle SIP status: enabled, disabled, unknown;  
 `improved` FullDiskAccess handle;  

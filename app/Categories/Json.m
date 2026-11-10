@@ -67,4 +67,50 @@
     return jsonData;
 }
 
+
+
+
+//    NSString *responseString = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
+//    [responseData release];
+//    NSError *error;
+//    SBJSON *json = [[SBJSON new] autorelease];
+//    NSArray *arrData = [json objectWithString:responseString error:&error];
+
+//+ (nullable NSDictionary*) readFile:(NSString*)file
+//{
+//    return [self decodeData:[NSData dataWithContentsOfFile:file]];
+//}
+
+
+//NSDictionary *dict;
+//NSData *dataFromDict = [NSJSONSerialization dataWithJSONObject:dict
+//    options:NSJSONWritingPrettyPrinted
+//    error:&error]
+//;
+//
+//NSDictionary *dictFromData = [NSJSONSerialization JSONObjectWithData:dataFromDict
+//    options:NSJSONReadingAllowFragments
+//    error:&error]
+//;
+
+
+//+ (void) doSomethingWithTheJson:(NSDictionary*)dict
+//{
+//    //NSDictionary *dict = [self decodeData];
+//    NSArray *colours = [dict objectForKey:@"colors"];
+//
+//    for (NSDictionary *colour in colours) {
+//        NSString *name = [colour objectForKey:@"name"];
+//        NSLog(@"Colour name: %@", name);
+//
+//        if ([name isEqualToString:@"green"]) {
+//            NSArray *pictures = [colour objectForKey:@"pictures"];
+//            for (NSDictionary *picture in pictures) {
+//                NSString *pictureName = [picture objectForKey:@"name"];
+//                NSLog(@"Picture name: %@", pictureName);
+//            }
+//        }
+//    }
+//}
+
 @end

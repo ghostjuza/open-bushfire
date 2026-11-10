@@ -551,6 +551,12 @@ static NSFileManager *fileManager = nil;
         // [Helper getOSVersion] >= 1200
         @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics",
         @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/Default",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/IndexedDB",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/MediaKeys",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/MediaKeysHashSalts",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/DeviceIdHashSalts",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceMonitorThrottler",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/SearchHistory",
         nil
     ];
     

@@ -30,7 +30,7 @@
 
         if ((self = [super init]))
         {
-            NSStatusItem *statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:STATUS_ITEM_VIEW_WIDTH];
+            NSStatusItem *statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
             _StatusItemView = [[StatusItemView alloc] initWithStatusItem:statusItem];
             
             _StatusItemView.image = icon;

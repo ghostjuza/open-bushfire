@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -48,6 +48,7 @@
 		32F472BC165A5F9A0008EE9A /* btn_close_about_pressed.png in Resources */ = {isa = PBXBuildFile; fileRef = E1BF0436159BA119004EE3F7 /* btn_close_about_pressed.png */; };
 		E12837D928EB8ECE00DDC6A7 /* Json.m in Sources */ = {isa = PBXBuildFile; fileRef = E12837D728EB8ECE00DDC6A7 /* Json.m */; };
 		E12837DC28EB8F3500DDC6A7 /* Curl.m in Sources */ = {isa = PBXBuildFile; fileRef = E12837DA28EB8F3500DDC6A7 /* Curl.m */; };
+		E13920F330A3285A00F4838A /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E13920F230A3285A00F4838A /* QuartzCore.framework */; };
 		E14CA1811CA17A8100E49EB1 /* dsa_pub_bf.pem in Resources */ = {isa = PBXBuildFile; fileRef = E14CA1801CA17A8100E49EB1 /* dsa_pub_bf.pem */; };
 		E15F259222764F090081BF8A /* paypal-donate-btn.png in Resources */ = {isa = PBXBuildFile; fileRef = E15F259122764F090081BF8A /* paypal-donate-btn.png */; };
 		E15F259522765E010081BF8A /* paypal-donate-btn@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E15F259422765E010081BF8A /* paypal-donate-btn@2x.png */; };
@@ -171,6 +172,7 @@
 		E12837D828EB8ECE00DDC6A7 /* Json.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Json.h; path = Categories/Json.h; sourceTree = "<group>"; };
 		E12837DA28EB8F3500DDC6A7 /* Curl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Curl.m; path = Categories/Curl.m; sourceTree = "<group>"; };
 		E12837DB28EB8F3500DDC6A7 /* Curl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Curl.h; path = Categories/Curl.h; sourceTree = "<group>"; };
+		E13920F230A3285A00F4838A /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		E14CA1801CA17A8100E49EB1 /* dsa_pub_bf.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub_bf.pem; sourceTree = "<group>"; };
 		E14F401E22772E8700081BFA /* releasenotes.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = releasenotes.md; sourceTree = "<group>"; };
 		E15F259122764F090081BF8A /* paypal-donate-btn.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "paypal-donate-btn.png"; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E13920F330A3285A00F4838A /* QuartzCore.framework in Frameworks */,
 				E1FD1C511C98202E008F953E /* SecurityInterface.framework in Frameworks */,
 				E1FD1C501C982021008F953E /* SecurityFoundation.framework in Frameworks */,
 				E1FD1C4F1C982013008F953E /* Security.framework in Frameworks */,
@@ -274,6 +277,7 @@
 		3231E04F1587AFE500FDE7F3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E13920F230A3285A00F4838A /* QuartzCore.framework */,
 				E198F82219082B610004B6FC /* Security.framework */,
 				E198F82319082B610004B6FC /* SecurityFoundation.framework */,
 				E198F82419082B610004B6FC /* SecurityInterface.framework */,
@@ -527,7 +531,8 @@
 		3231E0431587AFE500FDE7F3 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1330;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					32F47289165A5F9A0008EE9A = {
 						DevelopmentTeam = V67A8H8669;
@@ -611,6 +616,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		32F472CB165A5F9A0008EE9A /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -620,7 +626,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "#!/bin/bash\n\ninfoplistfile=\"$(SRCROOT)${INFOPLIST_FILE}\";\nbuild=$(/usr/libexec/PlistBuddy -c \"Print CFBundleShortVersionString\" \"$infoplistfile\");\ncurrentYear=\"$(date +'%Y')\";\n\nbuildPartList=($(echo $build | tr \".\" \" \"));\nbuildYear=\"${buildPartList[0]}\";\nbuildVersion=\"${buildPartList[1]}\";\n\nif [ \"$currentYear\" == \"$buildYear\" ]; then\n    buildVersion=$(awk '{print $1+$2}' <<< \"$buildVersion 1\");\nelse\n    buildYear=$currentYear;\n    buildVersion=\"0\";\nfi\n\nbuild=\"$buildYear.$buildVersion\";\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $build\" $infoplistfile\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $build\" $infoplistfile\n\necho \">>> generated version: $build\"\n\ncopyright=\"Copyright © $currentYear Open Bushfire Community.\";\n/usr/libexec/PlistBuddy -c \"Set :NSHumanReadableCopyright \\\"$copyright\\\"\" $infoplistfile\n";
+			shellScript = "#!/bin/bash\nset -e\n\ninfoplistfile=\"${INFOPLIST_FILE}\"\n\necho \">>> infoplistfile: $infoplistfile\"\necho \"  > PROJECT_DIR: ${PROJECT_DIR}\"\necho \"  > INFOPLIST_FILE: ${INFOPLIST_FILE}\"\n\nbuild=$(/usr/libexec/PlistBuddy -c \"Print CFBundleShortVersionString\" \"$infoplistfile\")\ncurrentYear=\"$(date +'%Y')\"\n\nbuildPartList=($(echo \"$build\" | tr \".\" \" \"))\nbuildYear=\"${buildPartList[0]}\"\nbuildVersion=\"${buildPartList[1]}\"\n\nif [ \"$currentYear\" == \"$buildYear\" ]; then\n    buildVersion=$(awk '{print $1+$2}' <<< \"$buildVersion 1\")\nelse\n    buildYear=\"$currentYear\"\n    buildVersion=\"0\"\nfi\n\nbuild=\"$buildYear.$buildVersion\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $build\" \"$infoplistfile\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $build\" \"$infoplistfile\"\n\necho \">>> generated version: $build\"\n\ncopyright=\"Copyright © $currentYear Open Bushfire Community.\"\n/usr/libexec/PlistBuddy -c \"Set :NSHumanReadableCopyright \\\"$copyright\\\"\" \"$infoplistfile\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -702,8 +708,11 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = V67A8H8669;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				EXCLUDED_ARCHS = "";
 				EXPORTED_SYMBOLS_FILE = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -726,9 +735,10 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				ONLY_ACTIVE_ARCH = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 			};
 			name = Debug;
 		};
@@ -757,8 +767,11 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = V67A8H8669;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				EXCLUDED_ARCHS = "";
 				EXPORTED_SYMBOLS_FILE = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -780,6 +793,7 @@
 				ONLY_ACTIVE_ARCH = NO;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 			};
 			name = Release;
 		};
@@ -788,11 +802,11 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = V67A8H8669;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)",
@@ -803,8 +817,12 @@
 				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/app/Resources/Bushfire-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 11.5;
 				PRODUCT_BUNDLE_IDENTIFIER = app.ghostjuza.Bushfire;
 				PRODUCT_NAME = Bushfire;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -818,11 +836,11 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = V67A8H8669;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/lib",
@@ -832,8 +850,11 @@
 				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/app/Resources/Bushfire-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 11.5;
 				PRODUCT_BUNDLE_IDENTIFIER = app.ghostjuza.Bushfire;
 				PRODUCT_NAME = Bushfire;
 				PROVISIONING_PROFILE = "";
