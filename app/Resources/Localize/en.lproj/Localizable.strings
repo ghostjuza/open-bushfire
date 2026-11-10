@@ -8,7 +8,7 @@
 "donate_hint"               = "Open donate@PayPal";
 "forkme_hint"               = "Open GitHub Fork";
 "license_hint"              = "Open License";
-"about_copyright"           = "Open-Source App\ncreated by community";
+"about_copyright"           = "Open-Source App\nby Andreas Bica and contributors";
 "open_site"                 = "Visit website";
 "quit"                      = "Quit Bushfire";
 "about"                     = "About Bushfire";

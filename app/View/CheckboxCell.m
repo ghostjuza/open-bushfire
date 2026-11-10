@@ -40,9 +40,13 @@
     }
     
     //[checkbox drawInRect:NSMakeRect(0, 0, checkbox.size.width, checkbox.size.height) fromRect:NSZeroRect operation:NSCompositeSourceIn fraction:1.0 respectFlipped:YES hints:nil];
-    [checkbox setFlipped:[controlView isFlipped]];
-    
-    [checkbox drawInRect:NSMakeRect(0, 0, checkbox.size.width, checkbox.size.height) fromRect:NSZeroRect operation:NSCompositeCopy fraction:1.0];
+    // setFlipped: ist seit 10.6 deprecated; respectFlipped:YES zeichnet in geflippten wie normalen Views korrekt
+    [checkbox drawInRect:NSMakeRect(0, 0, checkbox.size.width, checkbox.size.height)
+                fromRect:NSZeroRect
+               operation:NSCompositingOperationSourceOver
+                fraction:1.0
+          respectFlipped:YES
+                   hints:nil];
 }
 
 @end

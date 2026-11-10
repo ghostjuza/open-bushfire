@@ -122,14 +122,22 @@
     
     NSImage *backgroundImage = [NSImage imageNamed:@"btn_popup_middle"];
     //[backgroundImage drawInRect:imageRect fromRect:NSZeroRect operation:NSCompositeSourceIn fraction:1.0 respectFlipped:YES hints:nil];
-    [backgroundImage setFlipped:[controlView isFlipped]];
-    [backgroundImage drawInRect:bounds fromRect:NSZeroRect operation:NSCompositeCopy fraction:0.7];
+    [backgroundImage drawInRect:bounds
+                       fromRect:NSZeroRect
+                      operation:NSCompositingOperationSourceOver
+                       fraction:0.7
+                 respectFlipped:YES
+                          hints:nil];
     
     if ( self.a_image != nil )
     {
         //[self.a_image drawInRect:imageRect fromRect:NSZeroRect operation:NSCompositeSourceIn fraction:1.0 respectFlipped:YES hints:nil];
-        [self.a_image setFlipped:[controlView isFlipped]];
-        [self.a_image drawInRect:imageRect fromRect:NSZeroRect operation:NSCompositeCopy fraction:1.0];
+        [self.a_image drawInRect:imageRect
+                        fromRect:NSZeroRect
+                       operation:NSCompositingOperationSourceOver
+                        fraction:1.0
+                  respectFlipped:YES
+                           hints:nil];
     } 
     else
     {

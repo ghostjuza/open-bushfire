@@ -13,10 +13,14 @@
 
 - (id)initWithStatusItem:(NSStatusItem *)statusItem
 {
-    NSRect itemRect = NSMakeRect(0.0, 0.0, [statusItem length], [[NSStatusBar systemStatusBar] thickness]);
-    if ( (self = [super initWithFrame:itemRect]) ) {
+    if ( (self = [super init]) ) {
         _statusItem = [statusItem retain];
-        _statusItem.view = self;
+        
+        NSStatusBarButton *button = _statusItem.button;
+        [button setTarget:self];
+        [button setAction:@selector(statusButtonClicked:)];
+        [button sendActionOn:NSEventMaskLeftMouseDown];
+        [button setImagePosition:NSImageOnly];
     }
     return self;
 }
@@ -30,27 +34,34 @@
 }
 
 #pragma mark -
-- (void)drawRect:(NSRect)dirtyRect
+#pragma mark Click
+
+- (void)statusButtonClicked:(id)sender
 {
-	[self.statusItem drawStatusBarBackgroundInRect:dirtyRect withHighlight:self.isHighlighted];
+    // Klickposition merken: dient als Rueckfallebene, falls das Fenster des Buttons
+    // (macOS 11) keine brauchbare Position liefert
+    _lastClickLocation = [NSEvent mouseLocation];
+    _lastClickTime     = [NSDate timeIntervalSinceReferenceDate];
     
-    NSImage *icon = self.isHighlighted ? self.alternateImage : self.image;
-    CGFloat iconX = roundf((NSWidth(self.bounds) - [icon size].width) / 2);
-    CGFloat iconY = roundf((NSHeight(self.bounds) - [icon size].height) / 2);
-    NSPoint iconPoint = NSMakePoint(iconX, iconY);
-    [icon drawAtPoint:iconPoint fromRect:dirtyRect operation:NSCompositeSourceOver fraction:1];
-}
-
-#pragma mark -
-#pragma mark Mouse tracking
-
-- (void)mouseDown:(NSEvent *)theEvent
-{
     [NSApp sendAction:self.action to:self.target from:self];
 }
 
 #pragma mark -
 #pragma mark Accessors
+
+- (void)updateButtonImage
+{
+    NSImage *icon = self.image;
+    
+    if (icon != nil) {
+        // Schwarze Icons als Template: macOS faerbt sie je nach Menueleiste und Highlight.
+        // Das rote "clean"-Icon bleibt farbig.
+        BOOL isClean = [[icon name] isEqualToString:@"ico_menubar_clean"];
+        [icon setTemplate:!isClean];
+    }
+    
+    self.statusItem.button.image = icon;
+}
 
 - (void)setHighlighted:(BOOL)newFlag
 {
@@ -58,18 +69,17 @@
         return;
     }
     _isHighlighted = newFlag;
-    [self setNeedsDisplay:YES];
+    [self.statusItem.button highlight:newFlag];
 }
 
 #pragma mark -
-
 
 - (void)setImage:(NSImage *)newImage
 {
     [newImage retain];
     [_image release];
     _image = newImage;
-    [self setNeedsDisplay:YES];
+    [self updateButtonImage];
 }
 
 - (void)setAlternateImage:(NSImage *)newImage
@@ -77,21 +87,47 @@
     [newImage retain];
     [_alternateImage release];
     _alternateImage = newImage;
-    
-    if (self.isHighlighted) {
-        [self setNeedsDisplay:YES];
-    }   
 }
 
 #pragma mark -
 
 - (NSRect)globalRect
 {
-    NSRect frame = [self frame];
-    // convertPointToScreen macht stress bei Mountain Lion
-    //frame.origin = [self.window convertBaseToScreen:frame.origin];
-    frame.origin = [self.window convertPointToScreen:frame.origin];
-    return frame;
+    NSStatusBarButton *button = self.statusItem.button;
+    NSWindow *window = button.window;
+    CGFloat thickness = [[NSStatusBar systemStatusBar] thickness];
+    
+    NSRect rect = NSZeroRect;
+    if (window != nil) {
+        NSRect inWindow = [button convertRect:[button bounds] toView:nil];
+        rect = [window convertRectToScreen:inWindow];
+        NSRect windowFrame = [window frame];
+        rect.origin.y    = NSMinY(windowFrame);
+        rect.size.height = NSHeight(windowFrame);
+    }
+    
+    // Klick vor weniger als einer Sekunde?
+    BOOL recentClick = (([NSDate timeIntervalSinceReferenceDate] - _lastClickTime) < 1.0);
+    
+    // Rueckfall: Position aus dem Mausklick, wenn die Button-Position fehlt oder weit vom Klick entfernt ist
+    if (recentClick && (window == nil || NSWidth(rect) < 1 || fabs(NSMidX(rect) - _lastClickLocation.x) > 40)) {
+        NSScreen *screen = [NSScreen mainScreen];
+        for (NSScreen *candidate in [NSScreen screens]) {
+            if (NSPointInRect(_lastClickLocation, [candidate frame])) {
+                screen = candidate;
+                break;
+            }
+        }
+        NSRect screenFrame = [screen frame];
+        NSRect fallback = NSMakeRect(_lastClickLocation.x - 12.0, NSMaxY(screenFrame) - thickness, 24.0, thickness);
+        NSLog(@"Bushfire: Button-Rect %@ passt nicht zum Klick (%@), nutze %@", NSStringFromRect(rect), NSStringFromPoint(_lastClickLocation), NSStringFromRect(fallback));
+        rect = fallback;
+    }
+    else {
+        NSLog(@"Bushfire: Status-Button-Rect %@ (Klick: %@)", NSStringFromRect(rect), NSStringFromPoint(_lastClickLocation));
+    }
+    
+    return rect;
 }
 
 @end

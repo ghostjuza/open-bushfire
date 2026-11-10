@@ -2,134 +2,42 @@
 
 @implementation LoginItemManager
 
-+ (void)enableLoginItemWithLoginItemsReference:(LSSharedFileListRef )theLoginItemsRefs ForPath:(NSString *)appPath
+// Autostart ueber LaunchAgent in ~/Library/LaunchAgents (zuverlaessig unter macOS 11+,
+// die alte LSSharedFileList-Anmeldeobjektliste liefert dort unbrauchbare Ergebnisse).
++ (NSString *)launchAgentPath
 {
-	CFURLRef url = (CFURLRef)[NSURL fileURLWithPath:appPath];
-    
-	LSSharedFileListItemRef item = LSSharedFileListInsertItemURL(
-        theLoginItemsRefs,
-        kLSSharedFileListItemLast,
-        NULL,
-        NULL,
-        url,
-        NULL,
-        NULL
-    );
-    
-	if ( item ) {
-		CFRelease(item);
-    }
-}
-
-+ (void)disableLoginItemWithLoginItemsReference:(LSSharedFileListRef )theLoginItemsRefs ForPath:(NSString *)appPath
-{
-    UInt32 seedValue;
-	CFURLRef thePath = NULL;
-	CFArrayRef loginItemsArray = LSSharedFileListCopySnapshot(theLoginItemsRefs, &seedValue);
-	
-    for ( id item in (NSArray *)loginItemsArray ) {		
-		LSSharedFileListItemRef itemRef = (LSSharedFileListItemRef)item;
-		
-        if ( LSSharedFileListItemResolve(itemRef, 0, (CFURLRef*) &thePath, NULL) == noErr ) {
-		
-            if ( [[(NSURL *)thePath path] hasPrefix:appPath] ) {
-				LSSharedFileListItemRemove(theLoginItemsRefs, itemRef); // Deleting the item
-			}
-
-            if ( thePath != NULL ) {
-               CFRelease(thePath); 
-            }
-		}		
-	}
-	
-	if ( loginItemsArray != NULL ) {
-        CFRelease(loginItemsArray); 
-    }
-}
-
-+ (BOOL)loginItemExistsWithLoginItemReference:(LSSharedFileListRef)theLoginItemsRefs ForPath:(NSString *)appPath
-{
-    BOOL found = NO;  
-	UInt32 seedValue;
-	CFURLRef thePath = NULL;
-	CFArrayRef loginItemsArray = LSSharedFileListCopySnapshot(theLoginItemsRefs, &seedValue);
-	
-    for ( id item in (NSArray *)loginItemsArray ) {    
-		LSSharedFileListItemRef itemRef = (LSSharedFileListItemRef)item;
-		
-        if ( LSSharedFileListItemResolve(itemRef, 0, (CFURLRef*) &thePath, NULL) == noErr ) {
-			
-            if ( [[(NSURL *)thePath path] hasPrefix:appPath] ) {
-				found = YES;
-				break;
-			}
-            
-            if ( thePath != NULL ) {
-                CFRelease(thePath);
-            }
-		}
-	}
-    
-	if ( loginItemsArray != NULL ) {
-       CFRelease(loginItemsArray); 
-    }
-	
-	return found;
+    NSString *label = [[NSBundle mainBundle] bundleIdentifier];
+    if ([label length] == 0) label = @"de.bushfire.app";
+    NSString *dir = [NSHomeDirectory() stringByAppendingPathComponent:@"Library/LaunchAgents"];
+    return [dir stringByAppendingPathComponent:[label stringByAppendingString:@".autostart.plist"]];
 }
 
 + (BOOL)isLaunchAtStartup
 {
-    LSSharedFileListItemRef itemRef = [self itemRefInLoginItems];
-    BOOL isInList = itemRef != nil;
-    if (itemRef != nil) CFRelease(itemRef);
-    return isInList;
+    return [[NSFileManager defaultManager] fileExistsAtPath:[self launchAgentPath]];
 }
 
 + (void)toggleLaunchAtStartup
 {
-    BOOL shouldBeToggled = ![self isLaunchAtStartup];
-    LSSharedFileListRef loginItemsRef = LSSharedFileListCreate(NULL, kLSSharedFileListSessionLoginItems, NULL);
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSString *path = [self launchAgentPath];
     
-    if (loginItemsRef == nil) return;
-    
-    if (shouldBeToggled) {
-        CFURLRef appUrl = (CFURLRef)[NSURL fileURLWithPath:[[NSBundle mainBundle] bundlePath]];
-        LSSharedFileListItemRef itemRef = LSSharedFileListInsertItemURL(loginItemsRef, kLSSharedFileListItemLast, NULL, NULL, appUrl, NULL, NULL);
-        if (itemRef) CFRelease(itemRef);
-    }
-    else {
-        LSSharedFileListItemRef itemRef = [self itemRefInLoginItems];
-        LSSharedFileListItemRemove(loginItemsRef,itemRef);
-        if (itemRef != nil) CFRelease(itemRef);
-    }
-    CFRelease(loginItemsRef);
-}
-
-+ (LSSharedFileListItemRef)itemRefInLoginItems
-{
-    LSSharedFileListItemRef itemRef = nil;
-    NSURL *itemUrl = nil;
-    NSURL *appUrl = [NSURL fileURLWithPath:[[NSBundle mainBundle] bundlePath]];
-    LSSharedFileListRef loginItemsRef = LSSharedFileListCreate(NULL, kLSSharedFileListSessionLoginItems, NULL);
-    
-    if (loginItemsRef == nil) return nil;
-    
-    NSArray *loginItems = (NSArray *)LSSharedFileListCopySnapshot(loginItemsRef, nil);
-    for (int currentIndex = 0; currentIndex < [loginItems count]; currentIndex++) {
-        LSSharedFileListItemRef currentItemRef = (LSSharedFileListItemRef)[loginItems objectAtIndex:currentIndex];
-        if (LSSharedFileListItemResolve(currentItemRef, 0, (CFURLRef *) &itemUrl, NULL) == noErr) {
-            if ([itemUrl isEqual:appUrl]) {
-                itemRef = currentItemRef;
-            }
-        }
+    if ([fm fileExistsAtPath:path]) {
+        NSError *error = nil;
+        if (![fm removeItemAtPath:path error:&error]) NSLog(@"Bushfire: Autostart entfernen fehlgeschlagen: %@", error);
+        return;
     }
     
-    if (itemRef != nil) CFRetain(itemRef);
+    NSString *label = [[path lastPathComponent] stringByDeletingPathExtension];
+    NSDictionary *plist = [NSDictionary dictionaryWithObjectsAndKeys:
+        label, @"Label",
+        [NSArray arrayWithObjects:@"/usr/bin/open", @"-a", [[NSBundle mainBundle] bundlePath], nil], @"ProgramArguments",
+        [NSNumber numberWithBool:YES], @"RunAtLoad",
+        nil];
     
-    [loginItems release];
-    CFRelease(loginItemsRef);
-    
-    return itemRef;
+    NSError *error = nil;
+    [fm createDirectoryAtPath:[path stringByDeletingLastPathComponent] withIntermediateDirectories:YES attributes:nil error:&error];
+    if (![plist writeToFile:path atomically:YES]) NSLog(@"Bushfire: Autostart schreiben fehlgeschlagen: %@", path);
 }
 
 @end

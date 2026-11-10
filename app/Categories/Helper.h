@@ -32,9 +32,26 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)moveFinderObject:(NSString*)fromSource to:(NSString*)destination asTerminalCommand:(bool)asTerminalCommand;
 + (NSImage*)flippImage:(NSImage*)image withFrame:(NSRect)destRect;
 + (int)pushCleanUpCounting:(unsigned long long)cleanupSize cleanupCount:(NSUInteger)cleanupCount;
-+ (void)detectDataCountAndSize:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize;
++ (void)detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize;
 + (void)detectAndPushCleanUpCounting:(Settings*)settings;
-+ (void)log:(int)logLevel logMessage:(NSString*)logMessage;
+
+/**
+ logLevel :: Specifies the part of the system generating the message, and as a level, indicates the severity of the message. The level of severity is selected from the following list:
+ LOG_ALERT   : Indicates a condition that should be corrected immediately; for example, a corrupted database.
+ LOG_CRIT    : Indicates critical conditions; for example, hard device errors.
+ LOG_DEBUG   : Displays messages containing information useful to debug a program.
+ LOG_EMERG   : Indicates a panic condition reported to all users; system is unusable.
+ LOG_ERR     : Indicated error conditions.
+ LOG_INFO    : Indicates general information messages.
+ LOG_NOTICE  : Indicates a condition requiring special handling, but not an error condition.
+ LOG_WARNING : Logs warning messages.
+ 
+ @param logLevel LOG_ALERT, LOG_CRIT, ...
+ @param logMessage the message to log
+ */
++ (void)log:(int)logLevel withMessage:(NSString*)logMessage;
+
+
 + (bool)inString:(NSString*)haystack needle:(NSString*)needle;
 
 //+ (void) detectDataCountAndSize:(NSArray*)spyList

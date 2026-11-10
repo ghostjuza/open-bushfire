@@ -33,15 +33,15 @@ static NSFileManager *fileManager = nil;
     NSString *quePath  = [@"/tmp/bfrmque." stringByAppendingString:bfQue];
 
     if (!settings.CleanActive) {
-        [Helper log:LOG_NOTICE logMessage:@"Burn = disabled"];
+        [Helper log:LOG_NOTICE withMessage:@"Delete Safari files: disabled."];
         return;
     }
-
+    
     if (![self createQueDirectoryForRemove:quePath]) {
-        [Helper log:LOG_NOTICE logMessage:@"Create cleanup que = failed"];
+        [Helper log:LOG_WARNING withMessage:@"Create cleanup que: failed."];
         return;
     }
-
+    
     [[AppDelegate getMenubarController] setCleanIcon];
 
     dispatch_queue_t queue = dispatch_queue_create("app.bushfire.CleanupQueue", NULL);
@@ -55,12 +55,12 @@ static NSFileManager *fileManager = nil;
 
             // Start burn ...
             //
-            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Prepare to burn = [secure:%@]", (burnSecure ? @"YES" : @"NO")]];
+            [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Prepare to burn = [secure:%@]", (burnSecure ? @"YES" : @"NO")]];
 
             // Always try to burn Bushfire junk files !!!
             //
             [self m_moveToQueBushfireJunk:quePath];
-
+            
             (!settings.CleanForms ?: [self m_moveToQueForms:quePath]);
             (!settings.CleanLocation ?: [self m_moveToQueLocation:quePath]);
             (!settings.CleanWebPageIcons ?: [self m_moveToQueWebPageIcons:quePath]);
@@ -88,11 +88,15 @@ static NSFileManager *fileManager = nil;
                 }
             }
 
-            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"QueIdent = %@", bfQue]];
-            
-            // Burn the Q-Folder ...
-            //
+            [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Que Ident: %@", bfQue]];
             [self m_deleteFile:@"/tmp/bfrmque.*" secure:burnSecure];
+            
+            if ([[Helper getFileManager] fileExistsAtPath:quePath]) {
+                [Helper log:LOG_WARNING withMessage:@"Delete cleanup que: failed."];
+            }
+            else {
+                [Helper log:LOG_WARNING withMessage:@"Cleanup que was deleted: successfully."];
+            }
             
             if (block) {
                 block([NSNumber numberWithBool:settings.CleanActive], nil);
@@ -120,7 +124,7 @@ static NSFileManager *fileManager = nil;
             #if DEBUG == 1
             
                 logMsg = @"[DBG] Try to kill all Safari processes";
-                [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] %@", cmd]];
+                [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"[DBG] %@", cmd]];
             
             #endif
             
@@ -131,7 +135,7 @@ static NSFileManager *fileManager = nil;
     {
         #if DEBUG == 1
         
-            [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"[DBG] %@", exception.reason]];
+            [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"[DBG] %@", exception.reason]];
         
         #endif
     }
@@ -148,7 +152,7 @@ static NSFileManager *fileManager = nil;
         return true;
     }
 
-    [Helper log:LOG_ERR logMessage:@"Create que directory failed"];
+    [Helper log:LOG_ERR withMessage:@"Create que directory failed"];
     return false;
 }
 
@@ -159,8 +163,7 @@ static NSFileManager *fileManager = nil;
 
 - (void) moveToQueByArrayList:(NSArray*)arrayList toQuePath:(NSString*)quePath asTerminalCommand:(bool)asTerminalCommand
 {
-    for (int i = 0; i < [arrayList count]; i++)
-    {
+    for (int i = 0; i < [arrayList count]; i++){
         NSString *item     = [arrayList objectAtIndex:i];
         NSString *fromItem = [@"/" stringByAppendingString:item];
         NSString *toItem   = [self prepareQueName:item];
@@ -548,6 +551,12 @@ static NSFileManager *fileManager = nil;
         // [Helper getOSVersion] >= 1200
         @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceLoadStatistics",
         @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/Default",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/IndexedDB",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/MediaKeys",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/MediaKeysHashSalts",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/DeviceIdHashSalts",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/ResourceMonitorThrottler",
+        @"Library/Containers/com.apple.Safari/Data/Library/WebKit/WebsiteData/SearchHistory",
         nil
     ];
     
