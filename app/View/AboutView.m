@@ -3,7 +3,39 @@
 #define CORNER_RADIUS 6.0f
 
 
+@interface AboutView () {
+    NSPoint _dragMouseStart;
+    NSPoint _dragWindowStart;
+}
+@end
+
 @implementation AboutView
+
+
+// Fenster per Hintergrund verschieben: eigene Implementierung, damit Buttons (Schliessen-Button)
+// nicht durch setMovableByWindowBackground die Mausklicks verlieren (macOS 12).
+- (BOOL)acceptsFirstMouse:(NSEvent *)event
+{
+    return YES;
+}
+
+- (BOOL)mouseDownCanMoveWindow
+{
+    return NO;
+}
+
+- (void)mouseDown:(NSEvent *)event
+{
+    _dragMouseStart  = [NSEvent mouseLocation];
+    _dragWindowStart = [[self window] frame].origin;
+}
+
+- (void)mouseDragged:(NSEvent *)event
+{
+    NSPoint now = [NSEvent mouseLocation];
+    [[self window] setFrameOrigin:NSMakePoint(_dragWindowStart.x + (now.x - _dragMouseStart.x),
+                                              _dragWindowStart.y + (now.y - _dragMouseStart.y))];
+}
 
 
 - (void)drawRect:(NSRect)dirtyRect

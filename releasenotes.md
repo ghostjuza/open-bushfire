@@ -1,5 +1,11 @@
 # Release Notes
 
+### Build 2026.75 (2026-11-11)
+`fix` On macOS 12, the menu bar panel occasionally needed multiple clicks to open.  
+`change` Change to a fix checkbox color.  
+
+---
+
 ### Build 2026.50 (2026-11-10)
 `notice` END OF SUPPORT macOS 10.11  
 `notice` macOS 11.5 is now the minimum OS version  
