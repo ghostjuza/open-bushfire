@@ -1,6 +1,11 @@
 #import "AboutWindowController.h"
 #import "Helper.h"
 
+@interface AboutWindowController () {
+    id _closeClickMonitor;
+}
+@end
+
 @implementation AboutWindowController
 
 @synthesize TfDonate = _TfDonate;
@@ -24,7 +29,7 @@
     [panel setLevel:NSTornOffMenuWindowLevel];
     [panel setOpaque:NO];
     [panel setBackgroundColor:[NSColor clearColor]];
-    [panel setMovableByWindowBackground:YES];
+    [panel setMovableByWindowBackground:NO];
 }
 
 - (void)windowDidLoad
@@ -52,6 +57,9 @@
     
     [self.TfCopyright setStringValue:[NSString stringWithFormat:NSLocalizedString(@"about_copyright", nil), [dateFormatter stringFromDate:[NSDate date]]]];
     
+    [self.BtnClose setTarget:self];
+    [self.BtnClose setAction:@selector(actionClose:)];
+    [self installCloseClickMonitor];
     [self.BtnClose.cell setShowsStateBy:NSPushInCellMask];
     [self.BtnClose.cell setHighlightsBy:NSContentsCellMask];
     
@@ -75,8 +83,35 @@
     [self.BtnLicense setToolTip:NSLocalizedString(@"license_hint", nil)];
 }
 
+/**
+ Zusaetzliche Absicherung: Ein Klick (Maus loslassen) auf den Schliessen-Button schliesst das Fenster
+ auch dann, wenn die Button-Aktion unter macOS 12 nicht ausgeloest wird.
+ */
+- (void)installCloseClickMonitor
+{
+    if (_closeClickMonitor != nil) return;
+    
+    _closeClickMonitor = [[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseUp handler:^NSEvent *(NSEvent *event) {
+        NSWindow *panel = [self window];
+        if (self.BtnClose != nil && [event window] == panel && [panel isVisible]) {
+            NSPoint point = [self.BtnClose convertPoint:[event locationInWindow] fromView:nil];
+            if (NSPointInRect(point, [self.BtnClose bounds])) {
+                [self performSelector:@selector(actionClose:) withObject:nil afterDelay:0.0];
+            }
+        }
+        return event;
+    }] retain];
+}
+
+
 - (void)dealloc
 {
+    if (_closeClickMonitor != nil) {
+        [NSEvent removeMonitor:_closeClickMonitor];
+        [_closeClickMonitor release];
+        _closeClickMonitor = nil;
+    }
+
     [_TfTitle release];
     [_TfVersion release];
     [_TfCopyright release];
@@ -116,6 +151,8 @@
 
 - (IBAction)actionClose:(id)sender
 {
+    NSLog(@"Bushfire: About schliessen");
+    [[self window] orderOut:nil];
     [self close];
 }
 

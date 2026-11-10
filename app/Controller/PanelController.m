@@ -46,6 +46,65 @@ enum {
 
 
 // Container mit Ursprung oben links: alle Positionen im Panel sind "Abstand von oben"
+// Checkbox in Bushfire-Orange (unabhaengig von der Akzentfarbe des Systems)
+@interface BFCheckboxCell : NSButtonCell
+@end
+
+@implementation BFCheckboxCell
+
+- (void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView
+{
+    const CGFloat size = 16.0;
+    const CGFloat k = size / 14.0;
+    BOOL flipped = [controlView isFlipped];
+    NSRect box = NSMakeRect(NSMinX(cellFrame) + 1.0, floor(NSMidY(cellFrame) - size / 2.0), size, size);
+    BOOL on = ([self state] != NSControlStateValueOff);
+    CGFloat alpha = ([self isEnabled] ? 1.0 : 0.4);
+    
+    NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:NSInsetRect(box, 0.5, 0.5) xRadius:3.5 yRadius:3.5];
+    
+    if (on) {
+        // Verlauf wie die Flamme: oben helles Orange, unten tiefes Rot-Orange
+        NSColor *flameTop    = [NSColor colorWithCalibratedRed:0.96 green:0.52 blue:0.12 alpha:alpha];
+        NSColor *flameBottom = [NSColor colorWithCalibratedRed:0.78 green:0.17 blue:0.07 alpha:alpha];
+        NSGradient *gradient = [[[NSGradient alloc] initWithStartingColor:flameBottom endingColor:flameTop] autorelease];
+        [gradient drawInBezierPath:path angle:(flipped ? -90.0 : 90.0)];
+        [[NSColor colorWithCalibratedRed:0.55 green:0.10 blue:0.03 alpha:0.7 * alpha] setStroke];
+        [path setLineWidth:0.8];
+        [path stroke];
+        
+        NSBezierPath *check = [NSBezierPath bezierPath];
+        CGFloat (^yy)(CGFloat) = ^CGFloat(CGFloat dy) { return (flipped ? NSMinY(box) + dy : NSMaxY(box) - dy); };
+        [check moveToPoint:NSMakePoint(NSMinX(box) + 3.2 * k, yy(7.4 * k))];
+        [check lineToPoint:NSMakePoint(NSMinX(box) + 5.9 * k, yy(10.2 * k))];
+        [check lineToPoint:NSMakePoint(NSMinX(box) + 10.8 * k, yy(4.0 * k))];
+        [check setLineWidth:2.0];
+        [check setLineCapStyle:NSLineCapStyleRound];
+        [check setLineJoinStyle:NSLineJoinStyleRound];
+        [[NSColor colorWithCalibratedWhite:1.0 alpha:alpha] setStroke];
+        [check stroke];
+    }
+    else {
+        [[NSColor colorWithCalibratedWhite:1.0 alpha:0.10 * alpha] setFill];
+        [path fill];
+        [[NSColor colorWithCalibratedWhite:1.0 alpha:0.45 * alpha] setStroke];
+        [path setLineWidth:1.0];
+        [path stroke];
+    }
+    
+    NSRect titleRect = cellFrame;
+    titleRect.origin.x   += size + 6.0;
+    titleRect.size.width -= size + 6.0;
+    NSAttributedString *title = [self attributedTitle];
+    NSSize textSize = [title size];
+    titleRect.origin.y    = floor(NSMidY(cellFrame) - textSize.height / 2.0);
+    titleRect.size.height = ceil(textSize.height);
+    [title drawInRect:titleRect];
+}
+
+@end
+
+
 @interface BFFlippedView : NSView
 @end
 
@@ -223,6 +282,7 @@ static bool ANIMATE = false;
 - (NSButton *)checkboxWithFrame:(NSRect)frame title:(NSString *)title bold:(BOOL)bold action:(SEL)action
 {
     NSButton *button = [[[NSButton alloc] initWithFrame:frame] autorelease];
+    [button setCell:[[[BFCheckboxCell alloc] init] autorelease]];
     [button setButtonType:NSButtonTypeSwitch];
     NSFont *font = (bold ? [NSFont boldSystemFontOfSize:13] : [NSFont systemFontOfSize:13]);
     [button setAttributedTitle:[self whiteTitle:title font:font alignment:NSTextAlignmentLeft]];

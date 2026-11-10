@@ -264,8 +264,26 @@ static MenubarController *m_staticMenubarController;
  */
 - (IBAction)togglePanel:(id)sender
 {
-    self.a_menubarController.hasActiveIcon = !self.a_menubarController.hasActiveIcon;
-    self.a_panelController.hasActivePanel  = self.a_menubarController.hasActiveIcon;
+    // Doppelte Aufrufe (macOS 12 liefert den Klick teils mehrfach) verwerfen,
+    // sonst wird das Panel direkt nach dem Oeffnen wieder geschlossen.
+    static NSTimeInterval lastToggle = 0;
+    NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+    if ((now - lastToggle) < 0.25) {
+        NSLog(@"Bushfire: togglePanel verworfen (%.3fs nach letztem Aufruf)", now - lastToggle);
+        return;
+    }
+    lastToggle = now;
+    
+    // Zustand am echten Panel ablesen, nicht am Icon-Flag
+    PanelController *panelController = self.a_panelController;
+    BOOL isOpen = (panelController.hasActivePanel && [[panelController window] isVisible]);
+    NSLog(@"Bushfire: togglePanel, offen=%d (hasActivePanel=%d, visible=%d)", isOpen, panelController.hasActivePanel, [[panelController window] isVisible]);
+    
+    if (!isOpen && panelController.hasActivePanel) {
+        panelController.hasActivePanel = NO;   // veralteten Zustand zuruecksetzen
+    }
+    panelController.hasActivePanel = !isOpen;
+    self.a_menubarController.hasActiveIcon = panelController.hasActivePanel;
 }
 
 
