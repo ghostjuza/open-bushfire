@@ -30,7 +30,7 @@
 
         if ((self = [super init]))
         {
-            NSStatusItem *statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:STATUS_ITEM_VIEW_WIDTH];
+            NSStatusItem *statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
             _StatusItemView = [[StatusItemView alloc] initWithStatusItem:statusItem];
             
             _StatusItemView.image = icon;
@@ -87,12 +87,23 @@
 
     - (void)setCleanIcon
     {
+        // NSStatusItem.button darf nur im Hauptthread veraendert werden (sonst Absturz unter macOS 11+)
+        if (![NSThread isMainThread]) {
+            dispatch_async(dispatch_get_main_queue(), ^{ [self setCleanIcon]; });
+            return;
+        }
+        
         NSImage *icon = [NSImage imageNamed:iconNameClean];
         self.StatusItemView.image = icon;
     }
 
     - (void)unsetCleanIcon
     {
+        if (![NSThread isMainThread]) {
+            dispatch_async(dispatch_get_main_queue(), ^{ [self unsetCleanIcon]; });
+            return;
+        }
+        
         NSImage *icon = [NSImage imageNamed:iconName];
         
         if ([self getInterfaceStyle] != nil) {

@@ -45,10 +45,17 @@
         [request setHTTPBody:postData];
     }
     
-    NSError *error = [[NSError alloc] init];
-    NSHTTPURLResponse *response;
-
-    NSData *responseData = [NSURLConnection sendSynchronousRequest:request returningResponse:&response error:&error];
+    __block NSData *responseData = nil;
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        responseData = [data retain];
+        dispatch_semaphore_signal(semaphore);
+    }];
+    [task resume];
+    dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 60 * NSEC_PER_SEC));
+    dispatch_release(semaphore);
+    [responseData autorelease];
+    
     NSString *responseString = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
 
     return responseString;
