@@ -34,9 +34,9 @@ static NSFileManager *fileManager = nil;
 + (bool) isHiddenClearOptionsPressed
 {
     NSEvent *currentEvent = [NSApp currentEvent];
-    NSUInteger clearFlags = ([currentEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask);
+    NSUInteger clearFlags = ([currentEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask);
     
-    return (clearFlags == (NSShiftKeyMask | NSAlternateKeyMask | NSCommandKeyMask));
+    return (clearFlags == (NSEventModifierFlagShift | NSEventModifierFlagOption | NSEventModifierFlagCommand));
 }
 
 + (bool) inString:(NSString*)haystack needle:(NSString*)needle
@@ -675,7 +675,7 @@ static NSFileManager *fileManager = nil;
     
     #if PUSH_CLEANUP_COUNTING == 1
     
-        [Helper log:LOG_NOTICE logMessage:[NSString stringWithFormat:@"Push Cleanup Counting = %@", @"YES"]];
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Push Cleanup Counting = %@", @"YES"]];
         [Helper pushCleanUpCounting:objectSizeActive cleanupCount:objectCountActive];
     
     #else

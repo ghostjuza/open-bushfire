@@ -87,12 +87,23 @@
 
     - (void)setCleanIcon
     {
+        // NSStatusItem.button darf nur im Hauptthread veraendert werden (sonst Absturz unter macOS 11+)
+        if (![NSThread isMainThread]) {
+            dispatch_async(dispatch_get_main_queue(), ^{ [self setCleanIcon]; });
+            return;
+        }
+        
         NSImage *icon = [NSImage imageNamed:iconNameClean];
         self.StatusItemView.image = icon;
     }
 
     - (void)unsetCleanIcon
     {
+        if (![NSThread isMainThread]) {
+            dispatch_async(dispatch_get_main_queue(), ^{ [self unsetCleanIcon]; });
+            return;
+        }
+        
         NSImage *icon = [NSImage imageNamed:iconName];
         
         if ([self getInterfaceStyle] != nil) {

@@ -1,15 +1,18 @@
 # Release Notes
 
-### Build 2026.-- (2026-11-11)
-`notice` App is now properly signed and notarized;
-`notice` macOS 11.5 is now the minimum OS version;  
+### Build 2026.50 (2026-11-10)
+`notice` END OF SUPPORT macOS 10.11  
+`notice` macOS 11.5 is now the minimum OS version  
+`notice` App is now properly signed and notarized
+`improved` Remove more Website Data  
+`improved` Alignments for Panel View
 
 ---
 
 ### Build 2022.235 (2022-10-02)
-`improved` handle SIP status: enabled, disabled, unknown;  
-`improved` FullDiskAccess handle;  
-`notice` Remove AuthorizationManager;  
+`improved` handle SIP status: enabled, disabled, unknown  
+`improved` FullDiskAccess handle  
+`notice` Remove AuthorizationManager  
 
 ---
 

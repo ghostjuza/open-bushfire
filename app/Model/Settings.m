@@ -33,7 +33,14 @@
     NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:SAFARI_SWEEPER_USER_SETTINGS];
     
     if (data != nil) {
-        settings = (Settings *)[NSKeyedUnarchiver unarchiveObjectWithData:data];
+        NSError *error = nil;
+        NSKeyedUnarchiver *unarchiver = [[NSKeyedUnarchiver alloc] initForReadingFromData:data error:&error];
+        if (unarchiver != nil) {
+            [unarchiver setRequiresSecureCoding:NO];
+            settings = (Settings *)[unarchiver decodeObjectForKey:NSKeyedArchiveRootObjectKey];
+            [unarchiver finishDecoding];
+            [unarchiver release];
+        }
     }
     
     if (settings == nil)
@@ -77,7 +84,8 @@
 - (void)saveSettings
 {
     NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
-    [prefs setObject:[NSKeyedArchiver archivedDataWithRootObject:self] forKey:SAFARI_SWEEPER_USER_SETTINGS];
+    NSData *archived = [NSKeyedArchiver archivedDataWithRootObject:self requiringSecureCoding:NO error:nil];
+    if (archived != nil) [prefs setObject:archived forKey:SAFARI_SWEEPER_USER_SETTINGS];
     [prefs synchronize];
 }
 

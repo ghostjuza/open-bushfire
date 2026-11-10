@@ -183,7 +183,7 @@ static MenubarController *m_staticMenubarController;
 - (void) alertSystemIntegrityProtection
 {
     NSAlert *alert = [[[NSAlert alloc] init] autorelease];
-    [alert setAlertStyle:NSWarningAlertStyle];
+    [alert setAlertStyle:NSAlertStyleWarning];
     
     [alert addButtonWithTitle:NSLocalizedString(@"roger_that", nil)];
     [alert addButtonWithTitle:NSLocalizedString(@"dont_show_again", nil)];
@@ -202,7 +202,7 @@ static MenubarController *m_staticMenubarController;
 - (void) alertSystemIntegrityProtectionUnknown
 {
     NSAlert *alert = [[[NSAlert alloc] init] autorelease];
-    [alert setAlertStyle:NSWarningAlertStyle];
+    [alert setAlertStyle:NSAlertStyleWarning];
     
     [alert addButtonWithTitle:NSLocalizedString(@"roger_that", nil)];
     [alert addButtonWithTitle:NSLocalizedString(@"dont_show_again", nil)];
@@ -222,7 +222,7 @@ static MenubarController *m_staticMenubarController;
 - (void) alertDiskFullAccess
 {
     NSAlert *alert = [[[NSAlert alloc] init] autorelease];
-    [alert setAlertStyle:NSWarningAlertStyle];
+    [alert setAlertStyle:NSAlertStyleWarning];
     
     [alert addButtonWithTitle:NSLocalizedString(@"ok", nil)];
     
