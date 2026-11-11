@@ -18,7 +18,7 @@ Safari can remove history after a set period (at the earliest after one day), bu
 ## Status
 
 The app is pretty stable.  
-Currently it runs up macOS 10.11 to 12.x.
+It currently runs on macOS 11.5 and later.
 
 ## Quick Links
 

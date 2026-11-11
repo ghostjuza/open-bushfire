@@ -22,7 +22,7 @@
 #define POPUP_HEIGHT 78
 #define POPUP_HEIGHT_SMALL 200
 #define POPUP_HEIGHT_CLOSED 76
-#define PANEL_WIDTH 305
+#define PANEL_WIDTH 325
 #define ROW_HEIGHT 32
 #define DESIGN_HEIGHT 546  // Hoehe des Fensters in Panel.xib
 #define DATACOUNT_Y -3     // feste y-Position des Textfelds "75 / 77 Objekte"
@@ -105,6 +105,71 @@ enum {
 @end
 
 
+// Badge hinter jeder Kategorie: "Objekte / Groesse". Grau bei 0, orange sonst.
+// Faengt keine Klicks ab, die Checkbox darunter bleibt bedienbar.
+@interface BFBadgeView : NSView
+@property (nonatomic, copy) NSString *text;
+@property (nonatomic, assign) BOOL empty;    // 0 / 0 B -> grau
+@property (nonatomic, assign) BOOL dimmed;   // Kategorie ausgeschaltet
+@property (nonatomic, assign) CGFloat rightEdge;
+@end
+
+@implementation BFBadgeView
+@synthesize text = _text, empty = _empty, dimmed = _dimmed, rightEdge = _rightEdge;
+
+- (void)dealloc { [_text release]; [super dealloc]; }
+- (NSView *)hitTest:(NSPoint)point { return nil; }
+
++ (NSDictionary *)textAttributes
+{
+    return [NSDictionary dictionaryWithObjectsAndKeys:
+            [NSFont boldSystemFontOfSize:10], NSFontAttributeName,
+            nil];
+}
+
+- (void)setText:(NSString *)text empty:(BOOL)empty dimmed:(BOOL)dimmed
+{
+    self.text = text;
+    _empty    = empty;
+    _dimmed   = dimmed;
+    
+    CGFloat width = ceil([text sizeWithAttributes:[BFBadgeView textAttributes]].width) + 12.0;
+    NSRect frame  = [self frame];
+    frame.size.width = width;
+    frame.origin.x   = self.rightEdge - width;
+    [self setFrame:frame];
+    [self setNeedsDisplay:YES];
+}
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+    if ([self.text length] == 0) return;
+    
+    CGFloat alpha = (self.dimmed ? 0.45 : 1.0);
+    NSRect r = [self bounds];
+    NSBezierPath *pill = [NSBezierPath bezierPathWithRoundedRect:r xRadius:NSHeight(r) / 2.0 yRadius:NSHeight(r) / 2.0];
+    
+    NSColor *fill, *fg;
+    if (self.empty) {
+        fill = [NSColor colorWithCalibratedWhite:0.33 alpha:alpha];
+        fg   = [NSColor colorWithCalibratedWhite:0.68 alpha:alpha];
+    }
+    else {
+        fill = [NSColor colorWithCalibratedRed:0.91 green:0.42 blue:0.18 alpha:alpha];
+        fg   = [NSColor colorWithCalibratedWhite:1.0 alpha:alpha];
+    }
+    [fill setFill];
+    [pill fill];
+    
+    NSMutableDictionary *attrs = [NSMutableDictionary dictionaryWithDictionary:[BFBadgeView textAttributes]];
+    [attrs setObject:fg forKey:NSForegroundColorAttributeName];
+    NSSize ts = [self.text sizeWithAttributes:attrs];
+    [self.text drawAtPoint:NSMakePoint(floor((NSWidth(r) - ts.width) / 2.0), floor((NSHeight(r) - ts.height) / 2.0)) withAttributes:attrs];
+}
+
+@end
+
+
 @interface BFFlippedView : NSView
 @end
 
@@ -127,6 +192,7 @@ enum {
 @property (nonatomic, retain) NSButton *a_btnCleanSecureActive;
 @property (nonatomic, retain) NSButton *a_btnLogEnabled;
 @property (nonatomic, retain) NSTextField *TfDataCountSize;
+@property (nonatomic, retain) NSMutableDictionary *a_badges;   // tag -> BFBadgeView
 
 // 10.6 workaround 
 @property (assign) NSView *a_containerView;
@@ -173,6 +239,7 @@ enum {
 @synthesize a_btnUpdateCheck        = _a_btnUpdateCheck;
 @synthesize a_containerView         = _a_containerView;
 @synthesize TfDataCountSize         = _TfDataCountSize;
+@synthesize a_badges                = _a_badges;
 @synthesize a_overlay               = _a_overlay;
 
 
@@ -230,8 +297,93 @@ static bool ANIMATE = false;
     [_a_btnSettingsQuit release];
     [_a_chkStartup release];
     [_TfDataCountSize release];
+    [_a_badges release];
     
     [super dealloc];
+}
+
+
+#pragma mark - Datenmenge (Footer + Badges)
+
+/**
+ Mapping Zeile -> Scan-Kategorien (Helper). Einige Zeilen buendeln mehrere Kategorien.
+ */
+- (NSArray *)categoryNamesForRow:(NSInteger)row
+{
+    switch (row) {
+        case SettingsModeCookies:     return @[@"CleanCookies", @"CleanFlashCookies"];
+        case SettingsModeCache:       return @[@"CleanCache"];
+        case SettingsModePreview:     return @[@"CleanPreview"];
+        case SettingsModeHistory:     return @[@"CleanHistory"];
+        case SettingsModeTopSites:    return @[@"CleanTopSites"];
+        case SettingsModeForms:       return @[@"CleanForms"];
+        case SettingsModeDownloads:   return @[@"CleanDownloads"];
+        case SettingsModeLocation:    return @[@"CleanLocation"];
+        case SettingsModeWebPageIcons:return @[@"CleanWebPageIcons"];
+        case SettingsModeOfflineData: return @[@"CleanOfflineData", @"CleanLocalStorage"];
+        default:                      return @[];   // z.B. Zombie-Cookies: wird nicht gezaehlt
+    }
+}
+
+- (NSString *)badgeTextForCount:(NSUInteger)count size:(unsigned long long)size
+{
+    static NSNumberFormatter *intFmt = nil, *sizeFmt = nil;
+    if (!intFmt) {
+        intFmt = [[NSNumberFormatter alloc] init];
+        [intFmt setNumberStyle:NSNumberFormatterDecimalStyle];
+        sizeFmt = [[NSNumberFormatter alloc] init];
+        [sizeFmt setNumberStyle:NSNumberFormatterDecimalStyle];
+        [sizeFmt setMaximumFractionDigits:1];
+    }
+    
+    NSString *unit = @"B";
+    double value = (double) size;
+    NSArray *units = @[@"KB", @"MB", @"GB", @"TB"];
+    for (NSString *u in units) {
+        if (value < 1024.0) break;
+        value /= 1024.0;
+        unit = u;
+    }
+    [sizeFmt setMaximumFractionDigits:(value >= 100.0 || [unit isEqualToString:@"B"] ? 0 : 1)];
+    
+    return [NSString stringWithFormat:@"%@ / %@ %@",
+            [intFmt stringFromNumber:[NSNumber numberWithUnsignedInteger:count]],
+            [sizeFmt stringFromNumber:[NSNumber numberWithDouble:value]], unit];
+}
+
+/**
+ Aktualisiert Footer und Badges. Der Scan laeuft im Hintergrund (Helper).
+ useCache:YES nach (De-)Aktivieren einer Zeile: die Daten auf der Platte haben sich nicht geaendert.
+ */
+- (void)refreshDataCountUseCache:(BOOL)useCache
+{
+    if (!useCache) {
+        for (BFBadgeView *badge in [self.a_badges allValues]) {
+            [badge setText:@"\u2026" empty:YES dimmed:NO];   // "..." waehrend der Zaehlung
+        }
+    }
+    
+    [Helper detectDataCountAndSizeForPanel:self.a_settings
+        targetTextField:self.TfDataCountSize
+        useCache:useCache
+        perCategory:^(NSDictionary *byCategory)
+    {
+        for (NSNumber *tag in [self.a_badges allKeys]) {
+            NSUInteger count = 0;
+            unsigned long long size = 0;
+            
+            for (NSString *name in [self categoryNamesForRow:[tag integerValue]]) {
+                NSDictionary *entry = [byCategory objectForKey:name];
+                count += [[entry objectForKey:@"count"] unsignedIntegerValue];
+                size  += [[entry objectForKey:@"size"] unsignedLongLongValue];
+            }
+            
+            BFBadgeView *badge = [self.a_badges objectForKey:tag];
+            [badge setText:[self badgeTextForCount:count size:size]
+                     empty:(count == 0 && size == 0)
+                    dimmed:![self isSettingActiveForRow:[tag integerValue]]];
+        }
+    }];
 }
 
 
@@ -342,10 +494,10 @@ static bool ANIMATE = false;
     [self.a_chkStartup setHidden:YES];
     [overlay addSubview:self.a_chkStartup];
     
-    self.a_btnBurnNow = [self iconButtonWithFrame:NSMakeRect(231, 14, 32, 32) image:@"btn_burn_now" pressed:@"btn_burn_now_pressed" action:@selector(actionBurnNow:)];
+    self.a_btnBurnNow = [self iconButtonWithFrame:NSMakeRect(PANEL_WIDTH - 74, 14, 32, 32) image:@"btn_burn_now" pressed:@"btn_burn_now_pressed" action:@selector(actionBurnNow:)];
     [overlay addSubview:self.a_btnBurnNow];
     
-    self.a_btnSettings = [self iconButtonWithFrame:NSMakeRect(261, 14, 32, 32) image:@"btn_settings" pressed:@"btn_settings_pressed" action:@selector(actionSettings:)];
+    self.a_btnSettings = [self iconButtonWithFrame:NSMakeRect(PANEL_WIDTH - 44, 14, 32, 32) image:@"btn_settings" pressed:@"btn_settings_pressed" action:@selector(actionSettings:)];
     [overlay addSubview:self.a_btnSettings];
     
     // --- Liste mit Einstellungen (Zeilen + Trennlinien) ---
@@ -369,6 +521,13 @@ static bool ANIMATE = false;
         [settingButton setState:[self isSettingActiveForRow:tag]];
         [container addSubview:settingButton];
         
+        // Badge (rechtsbuendig, ueber der Checkbox, klickdurchlaessig)
+        if (!self.a_badges) self.a_badges = [NSMutableDictionary dictionary];
+        BFBadgeView *badge = [[[BFBadgeView alloc] initWithFrame:NSMakeRect(PANEL_WIDTH - 12, rowY + 7.5, 0, 17)] autorelease];
+        badge.rightEdge = PANEL_WIDTH - 12;
+        [container addSubview:badge];
+        [self.a_badges setObject:badge forKey:[NSNumber numberWithInteger:tag]];
+        
         // Trennlinie unter der Zeile (dunkel + hell), nicht nach der letzten Zeile
         if (current + 1 < [self.a_tableRows count]) {
             DarkLineView *dark = [[[DarkLineView alloc] initWithFrame:NSMakeRect(1, rowY + ROW_HEIGHT - 1, PANEL_WIDTH - 2, 1)] autorelease];
@@ -389,17 +548,17 @@ static bool ANIMATE = false;
     [self.a_btnCleanSecureActive setState:self.a_settings.CleanSecureActive];
     [settingsView addSubview:self.a_btnCleanSecureActive];
     
-    self.a_btnLogEnabled = [self checkboxWithFrame:NSMakeRect(225, 53, 70, 18) title:NSLocalizedString(@"log_enabled", nil) bold:NO action:@selector(actionLogEnable:)];
+    self.a_btnLogEnabled = [self checkboxWithFrame:NSMakeRect(PANEL_WIDTH - 80, 53, 70, 18) title:NSLocalizedString(@"log_enabled", nil) bold:NO action:@selector(actionLogEnable:)];
     [self.a_btnLogEnabled setState:self.a_settings.LogEnabled];
     [settingsView addSubview:self.a_btnLogEnabled];
     
-    self.a_btnUpdateCheck = [self pillButtonWithFrame:NSMakeRect(65, 93, 175, 20) title:NSLocalizedString(@"update", nil) action:@selector(actionUpdateCheck:)];
+    self.a_btnUpdateCheck = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 93, 175, 20) title:NSLocalizedString(@"update", nil) action:@selector(actionUpdateCheck:)];
     [settingsView addSubview:self.a_btnUpdateCheck];
     
-    self.a_btnSettingsQuit = [self pillButtonWithFrame:NSMakeRect(65, 121, 175, 20) title:NSLocalizedString(@"quit", nil) action:@selector(actionSettingsQuit:)];
+    self.a_btnSettingsQuit = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 121, 175, 20) title:NSLocalizedString(@"quit", nil) action:@selector(actionSettingsQuit:)];
     [settingsView addSubview:self.a_btnSettingsQuit];
     
-    self.a_btnSettingsAbout = [self pillButtonWithFrame:NSMakeRect(65, POPUP_HEIGHT_SMALL - 26, 175, 20) title:NSLocalizedString(@"about", nil) action:@selector(actionSettingsAbout:)];
+    self.a_btnSettingsAbout = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), POPUP_HEIGHT_SMALL - 26, 175, 20) title:NSLocalizedString(@"about", nil) action:@selector(actionSettingsAbout:)];
     [settingsView addSubview:self.a_btnSettingsAbout];
     
     // --- Fußzeile: Anzahl / Größe ---
@@ -607,7 +766,7 @@ static bool ANIMATE = false;
     [panel setFrame:panelRect display:YES];
     [panel makeKeyAndOrderFront:nil];
     
-    [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
+    [self refreshDataCountUseCache:NO];
     
     // No animation
     if (!ANIMATE) {
@@ -859,9 +1018,9 @@ static bool ANIMATE = false;
 
     [self.a_settings saveSettings];
     
-    // Detect data counts and sizes
+    // Only the "active" selection changed, not the data on disk -> answer from scan cache
     //
-    [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
+    [self refreshDataCountUseCache:YES];
 }
 
 
@@ -897,10 +1056,8 @@ static bool ANIMATE = false;
         
         // dispatch_get_current_queue | dispatch_get_main_queue
         //dispatch_async(self.myQueue, ^ {
-        dispatch_async(dispatch_get_main_queue(), ^ {
-            [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
-            [self restorePanel:1.0];
-        });
+        [self refreshDataCountUseCache:YES];
+        [self restorePanel:1.0];
     }
 }
 
@@ -982,10 +1139,8 @@ static bool ANIMATE = false;
     
     // dispatch_get_current_queue | dispatch_get_main_queue
     //dispatch_async(self.myQueue, ^{
-    dispatch_async(dispatch_get_main_queue(), ^ {
-        [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
-        [self restorePanel:1.0];
-    });
+    [self refreshDataCountUseCache:YES];
+    [self restorePanel:1.0];
 }
 
 

@@ -1,5 +1,16 @@
 # Release Notes
 
+### Build 2026.85 (2026-11-12)
+`new` Per-category badges: Every category in the panel now shows how many objects it contains and how much space they use, for example 1,200 / 567 MB. Categories with nothing to clean show a gray 0 / 0 B. The badge dims when you turn the category off.
+`new` Wider panel: The panel is 20 px wider so the badges fit next to the longest category names.
+`improved` Smoother panel: Counting objects and data size no longer runs on the main thread, so the panel stays responsive even with a large Safari cache or history.
+`improved` Faster scanning: Scanning folders needs fewer resources, and the categories are scanned in parallel in the background.
+`improved` Instant toggling: Switching a category on or off updates the totals immediately without rescanning your disk.
+`improved` Latest scan wins: When you click quickly, only the most recent scan is shown.
+`fix` Double counting: One Safari history file was counted twice. Object counts and sizes in the panel and the anonymous cleanup statistics can be slightly lower than before, but they are now accurate.  
+
+---
+
 ### Build 2026.75 (2026-11-11)
 `fix` On macOS 12, the menu bar panel occasionally needed multiple clicks to open.  
 `change` Change to a fix checkbox color.  
