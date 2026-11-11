@@ -11,6 +11,136 @@
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <syslog.h>
+#include <fts.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdatomic.h>
+
+typedef struct {
+    NSUInteger         count;
+    unsigned long long size;
+} BFScanResult;
+
+#pragma mark -
+#pragma mark Data count and size (off the main thread)
+
+// One category of Safari data (cookies, cache, ...).
+// "enabled" is a snapshot of the settings, taken on the calling thread.
+//
+@interface BFDataCategory : NSObject
+@property (nonatomic, copy)   NSString *name;
+@property (nonatomic, retain) NSArray  *paths;     // absolute paths, de-duplicated
+@property (nonatomic, assign) BOOL      enabled;   // counts as "active"
+@end
+
+@implementation BFDataCategory
+@synthesize name, paths, enabled;
+- (void) dealloc { [name release]; [paths release]; [super dealloc]; }
+@end
+
+// Result cache. A category is only stored after a *complete* scan, so a cancelled
+// run never leaves half-counted values behind. Toggling a checkbox in the panel
+// only changes "enabled", not the scanned data -> answered from cache, no disk I/O.
+//
+static dispatch_queue_t  bfCacheQueue(void);
+static NSMutableDictionary *bfCache(void);          // name -> @{result, date}
+static const NSTimeInterval kBFCacheTTL = 3.0;      // seconds
+
+static dispatch_queue_t bfCacheQueue(void)
+{
+    static dispatch_queue_t q; static dispatch_once_t once;
+    dispatch_once(&once, ^{ q = dispatch_queue_create("app.bushfire.DataCountCache", DISPATCH_QUEUE_SERIAL); });
+    return q;
+}
+
+static NSMutableDictionary *bfCache(void)
+{
+    static NSMutableDictionary *c; static dispatch_once_t once;
+    dispatch_once(&once, ^{ c = [[NSMutableDictionary alloc] init]; });
+    return c;
+}
+
+// Generation counter: every new async request bumps it, older scans notice and abort.
+static _Atomic int64_t bfScanGeneration = 0;
+
+// Fast recursive size/count with fts(3): one pass, no NSString/NSDictionary per file.
+// Semantics identical to the old subpathsAtPath + attributesOfItemAtPath code:
+//   - the root directory itself is not counted, every entry below it is (files AND dirs)
+//   - a plain file counts as 1 object
+//   - sizes are st_size (like NSFileSize), symlinks are not followed below the root
+// Returns NO if cancelled.
+//
+static BOOL bfScanPath(NSString *path, BFScanResult *out, BOOL (^isCancelled)(void))
+{
+    const char *fsPath = path.fileSystemRepresentation;
+    if (fsPath == NULL) return YES;
+    
+    char *paths[2] = { (char*) fsPath, NULL };
+    FTS *fts = fts_open(paths, FTS_PHYSICAL | FTS_COMFOLLOW | FTS_NOCHDIR, NULL);
+    if (fts == NULL) return YES;
+    
+    NSUInteger count = 0;
+    unsigned long long size = 0;
+    unsigned tick = 0;
+    BOOL completed = YES;
+    FTSENT *e;
+    
+    while ((e = fts_read(fts)) != NULL) {
+        if ((++tick & 0x3FF) == 0 && isCancelled && isCancelled()) { completed = NO; break; }
+        
+        switch (e->fts_info) {
+            case FTS_DP:            // post-order visit of a directory, already seen as FTS_D
+                continue;
+            case FTS_NS:            // no stat info
+            case FTS_ERR:
+            case FTS_DC:
+                if (e->fts_level > 0) count++;
+                continue;
+            case FTS_D:
+            case FTS_DNR:
+                if (e->fts_level == 0) continue;   // root dir is not an object
+                break;
+            default:
+                break;
+        }
+        count++;
+        if (e->fts_statp) size += (unsigned long long) e->fts_statp->st_size;
+    }
+    
+    fts_close(fts);
+    
+    if (completed) { out->count += count; out->size += size; }
+    return completed;
+}
+
+// Scans all paths of one category (or serves it from cache).
+// Returns NO if cancelled.
+//
+static BOOL bfScanCategory(BFDataCategory *cat, BOOL useCache, BFScanResult *out, BOOL (^isCancelled)(void))
+{
+    if (useCache) {
+        __block NSDictionary *hit = nil;
+        dispatch_sync(bfCacheQueue(), ^{ hit = [[bfCache() objectForKey:cat.name] retain]; });
+        if (hit && (-[((NSDate*) hit[@"date"]) timeIntervalSinceNow]) < kBFCacheTTL) {
+            out->count = [hit[@"count"] unsignedIntegerValue];
+            out->size  = [hit[@"size"] unsignedLongLongValue];
+            [hit release];
+            return YES;
+        }
+        [hit release];
+    }
+    
+    BFScanResult r = {0, 0};
+    for (NSString *p in cat.paths) {
+        if (!bfScanPath(p, &r, isCancelled)) return NO;
+    }
+    
+    NSDictionary *entry = @{ @"count": @(r.count), @"size": @(r.size), @"date": [NSDate date] };
+    dispatch_sync(bfCacheQueue(), ^{ [bfCache() setObject:entry forKey:cat.name]; });
+    
+    *out = r;
+    return YES;
+}
 
 @implementation Helper
 
@@ -170,7 +300,7 @@ static NSFileManager *fileManager = nil;
         NSString *finderPath = [sourceList objectAtIndex:i];
         
         objectSizeTotal += [Helper spyFinderObject:finderPath objectCount:&_objectCount];
-        *objectCount += _objectCount;
+        if (objectCount) *objectCount += _objectCount;
     }
     
     return objectSizeTotal;
@@ -226,7 +356,7 @@ static NSFileManager *fileManager = nil;
             objectSize = [Helper spyFolder:source objectCount:objectCount];
         }
         else {
-            *objectCount = 1;
+            if (objectCount) *objectCount = 1;
             objectSize = [Helper spyFile:source];
         }
     }
@@ -237,31 +367,10 @@ static NSFileManager *fileManager = nil;
 
 + (unsigned long long) spyFolder:(NSString *)source objectCount:(nullable NSUInteger*)objectCount
 {
-    NSArray      *contents;
-    NSEnumerator *enumerator;
-    NSString     *path;
-    
-    unsigned long long objectSize = 0;
-    BOOL isDirectory;
-    
-    if ([[Helper getFileManager] fileExistsAtPath:source isDirectory:&isDirectory] && isDirectory) {
-        contents = [[NSFileManager defaultManager] subpathsAtPath:source];
-    }
-    else {
-        contents = [NSArray array];
-    }
-    
-    // Add Size Of All Paths 
-    enumerator = [contents objectEnumerator];
-    
-    while (path = [enumerator nextObject]) {
-        NSDictionary *fattrs = [[Helper getFileManager] attributesOfItemAtPath:[source stringByAppendingPathComponent:path] error:nil];
-        objectSize += [[fattrs objectForKey:NSFileSize] unsignedLongLongValue];
-    }
-    
-    *objectCount = [contents count];
-    
-    return objectSize;
+    BFScanResult r = {0, 0};
+    bfScanPath(source, &r, nil);
+    if (objectCount) *objectCount = r.count;
+    return r.size;
 }
 
 
@@ -476,6 +585,106 @@ static NSFileManager *fileManager = nil;
 }
 
 
+// Builds the category list. Cheap, but touches Settings -> call on the thread that owns it
+// (main thread for the UI); the returned objects are immutable snapshots.
+//
++ (NSArray*) bf_dataCategoriesForSettings:(Settings*)settings
+{
+    BOOL on = settings.CleanActive;
+    
+    struct { NSString *name; NSArray *list; BOOL enabled; } defs[] = {
+        { @"CleanForms",        [SweeperManager getFormsList],        on && settings.CleanForms },
+        { @"CleanLocation",     [SweeperManager getLocationList],     on && settings.CleanLocation },
+        { @"CleanPreview",      [SweeperManager getPreviewList],      on && settings.CleanPreview },
+        { @"CleanTopSites",     [SweeperManager getTopSitesList],     on && settings.CleanTopSites },
+        { @"CleanCache",        [SweeperManager getCacheList],        on && settings.CleanCache },
+        { @"CleanWebPageIcons", [SweeperManager getWebPageIconsList], on && settings.CleanWebPageIcons },
+        { @"CleanHistory",      [SweeperManager getHistoryList],      on && settings.CleanHistory },
+        { @"CleanDownloads",    [SweeperManager getDownloadsList],    on && settings.CleanDownloads },
+        { @"CleanCookies",      [SweeperManager getCookiesList],      on && settings.CleanCookies },
+        { @"CleanFlashCookies", [SweeperManager getFlashCookiesList], on && settings.CleanCookies },
+        { @"CleanOfflineData",  [SweeperManager getOfflineDataList],  on && settings.CleanOfflineData },
+        { @"CleanLocalStorage", [SweeperManager getLocalStorageList], on && settings.CleanOfflineData },
+    };
+    
+    NSMutableArray *result = [NSMutableArray array];
+    for (size_t i = 0; i < sizeof(defs) / sizeof(defs[0]); i++) {
+        BFDataCategory *cat = [[[BFDataCategory alloc] init] autorelease];
+        cat.name    = defs[i].name;
+        // de-duplicate (e.g. HistoryIndex.sk is listed twice) so nothing is counted twice
+        cat.paths   = [[NSOrderedSet orderedSetWithArray:[Helper appendAbsolutePath:defs[i].list]] array];
+        cat.enabled = defs[i].enabled;
+        [result addObject:cat];
+    }
+    return result;
+}
+
++ (void) bf_sumCategories:(NSArray*)categories results:(BFScanResult*)results
+    countActive:(NSUInteger*)countActive sizeActive:(unsigned long long*)sizeActive
+    countTotal:(NSUInteger*)countTotal sizeTotal:(unsigned long long*)sizeTotal
+{
+    *countActive = *countTotal = 0;
+    *sizeActive  = *sizeTotal  = 0;
+    for (NSUInteger i = 0; i < categories.count; i++) {
+        *countTotal += results[i].count;
+        *sizeTotal  += results[i].size;
+        if (((BFDataCategory*) categories[i]).enabled) {
+            *countActive += results[i].count;
+            *sizeActive  += results[i].size;
+        }
+    }
+}
+
+
+/**
+ Asynchronous variant for the UI. Never blocks the caller.
+ - scanning runs on a utility-QoS concurrent queue (categories in parallel)
+ - a newer call cancels the older one (no pile-up when the user clicks quickly)
+ - completion runs on the main queue and is NOT called for superseded requests
+ - useCache:YES answers from a <3 s old scan, e.g. after (un)checking a category
+ */
++ (void) detectDataCountAndSizeAsync:(Settings*)settings
+    useCache:(BOOL)useCache
+    completion:(void (^)(NSUInteger countActive, unsigned long long sizeActive,
+                         NSUInteger countTotal, unsigned long long sizeTotal))completion
+{
+    NSArray *categories = [Helper bf_dataCategoriesForSettings:settings];     // snapshot on caller thread
+    const int64_t generation = atomic_fetch_add(&bfScanGeneration, 1) + 1;
+    
+    BOOL (^isCancelled)(void) = ^BOOL { return atomic_load(&bfScanGeneration) != generation; };
+    
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^
+    {
+        NSUInteger n = categories.count;
+        BFScanResult *results = calloc(n, sizeof(BFScanResult));
+        __block volatile BOOL aborted = NO;
+        
+        dispatch_apply(n, dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^(size_t i)
+        {
+            @autoreleasepool {
+                if (aborted || isCancelled()) { aborted = YES; return; }
+                if (!bfScanCategory(categories[i], useCache, &results[i], isCancelled)) aborted = YES;
+            }
+        });
+        
+        if (!aborted && !isCancelled()) {
+            NSUInteger cA, cT; unsigned long long sA, sT;
+            [Helper bf_sumCategories:categories results:results countActive:&cA sizeActive:&sA countTotal:&cT sizeTotal:&sT];
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (!isCancelled()) completion(cA, sA, cT, sT);
+            });
+        }
+        free(results);
+    });
+}
+
+
+/**
+ Synchronous variant (used by the cleanup in the background, with logging).
+ Same engine, no cache, no cancellation, sequential so the log order stays stable.
+ MUST NOT be called on the main thread.
+ */
 + (void) _detectDataCountAndSize:
     (Settings*)settings
     objectCountCurrent:(nullable NSUInteger*)objectCountCurrent
@@ -486,169 +695,61 @@ static NSFileManager *fileManager = nil;
     objectSizeTotal:(nullable unsigned long long*)objectSizeTotal
     log:(bool)log
 {
-    *objectCountCurrent = 0;
-    *objectSizeCurrent = 0;
-    *objectCountTotal = 0;
-    *objectSizeTotal = 0;
-    *objectCountActive = 0;
-    *objectSizeActive = 0;
+    NSUInteger dummyCount = 0; unsigned long long dummySize = 0;
+    if (!objectCountCurrent) objectCountCurrent = &dummyCount;
+    if (!objectSizeCurrent)  objectSizeCurrent  = &dummySize;
+    if (!objectCountActive)  objectCountActive  = &dummyCount;
+    if (!objectSizeActive)   objectSizeActive   = &dummySize;
+    if (!objectCountTotal)   objectCountTotal   = &dummyCount;
+    if (!objectSizeTotal)    objectSizeTotal    = &dummySize;
+    
+    *objectCountCurrent = *objectCountActive = *objectCountTotal = 0;
+    *objectSizeCurrent  = *objectSizeActive  = *objectSizeTotal  = 0;
     
     if (log) {
         [Helper log:LOG_NOTICE withMessage:@"Run detect data count and size"];
     }
     
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getFormsList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanForms" log:log
-    ];
-    if (settings.CleanActive && settings.CleanForms) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getLocationList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanLocation" log:log
-    ];
-    if (settings.CleanActive && settings.CleanLocation) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-    
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getPreviewList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanPreview" log:log
-    ];
-    if (settings.CleanActive && settings.CleanPreview) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-    
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getTopSitesList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanTopSites" log:log
-    ];
-    if (settings.CleanActive && settings.CleanTopSites) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-    
-    
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getCacheList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanCache" log:log
-    ];
-    if (settings.CleanActive && settings.CleanCache) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-    
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getWebPageIconsList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanWebPageIcons" log:log
-    ];
-    if (settings.CleanActive && settings.CleanWebPageIcons) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-    
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getHistoryList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanHistory" log:log
-    ];
-    if (settings.CleanActive && settings.CleanHistory) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-    
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getDownloadsList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanDownloads" log:log
-    ];
-    if (settings.CleanActive && settings.CleanDownloads) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-    
-    
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getCookiesList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanCookies" log:log
-    ];
-    if (settings.CleanActive && settings.CleanCookies) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-    
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getFlashCookiesList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanFlashCookies" log:log
-    ];
-    if (settings.CleanActive && settings.CleanCookies) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-    
-    
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getOfflineDataList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanOfflineData" log:log
-    ];
-    if (settings.CleanActive && settings.CleanOfflineData) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-    
-    [self detectDataCountAndSize:[Helper appendAbsolutePath:[SweeperManager getLocalStorageList]]
-        objectCountCurrent:&*objectCountCurrent objectSizeCurrent:&*objectSizeCurrent objectCountTotal:&*objectCountTotal objectSizeTotal:&*objectSizeTotal spyListName:@"CleanLocalStorage" log:log
-    ];
-    if (settings.CleanActive && settings.CleanOfflineData) {
-        *objectSizeActive  += *objectSizeCurrent;
-        *objectCountActive += *objectCountCurrent;
-    }
-}
-
-
-+ (void) detectDataCountAndSize:(NSArray*)spyList
-    objectCountCurrent:(nullable NSUInteger*)objectCountCurrent
-    objectSizeCurrent:(nullable unsigned long long*)objectSizeCurrent
-    objectCountTotal:(nullable NSUInteger*)objectCountTotal
-    objectSizeTotal:(nullable unsigned long long*)objectSizeTotal
-    spyListName:(NSString*)spyListName
-    log:(bool)log
-{
-    NSUInteger countCurrent = 0;
-    unsigned long long sizeCurrent = [Helper spyFinderObjectFromSourceList:spyList objectCount:&countCurrent];
-    
-    *objectCountCurrent = countCurrent;
-    *objectSizeCurrent = sizeCurrent;
-    
-    *objectCountTotal += countCurrent;
-    *objectSizeTotal += sizeCurrent;
-    
-    if (log) {
-        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"%@ %@", spyListName, [NSString stringWithFormat:@"[objects:%d] [size:%@]", (int) countCurrent, [Helper formatBytes:sizeCurrent]]]];
+    for (BFDataCategory *cat in [Helper bf_dataCategoriesForSettings:settings]) {
+        BFScanResult r = {0, 0};
+        bfScanCategory(cat, NO, &r, nil);
+        
+        *objectCountCurrent = r.count;
+        *objectSizeCurrent  = r.size;
+        *objectCountTotal  += r.count;
+        *objectSizeTotal   += r.size;
+        
+        if (cat.enabled) {
+            *objectCountActive += r.count;
+            *objectSizeActive  += r.size;
+        }
+        
+        if (log) {
+            [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"%@ [objects:%d] [size:%@]",
+                cat.name, (int) r.count, [Helper formatBytes:r.size]]];
+        }
     }
 }
 
 
 + (void) detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize
 {
+    [Helper detectDataCountAndSizeForPanel:settings targetTextField:TfDataCountSize useCache:NO];
+}
+
+
++ (void) detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize useCache:(BOOL)useCache
+{
     [TfDataCountSize setStringValue:NSLocalizedString(@"data_count_size_detect", nil)];
-
-    __block NSUInteger objectCountCurrent = 0;
-    __block unsigned long long objectSizeCurrent = 0;
-    __block NSUInteger objectCountTotal = 0;
-    __block unsigned long long objectSizeTotal = 0;
-    __block NSUInteger objectCountActive = 0;
-    __block unsigned long long objectSizeActive = 0;
-
-    dispatch_async(dispatch_get_main_queue(), ^
+    
+    [TfDataCountSize retain];   // MRC: keep the label alive until the result arrives
+    [Helper detectDataCountAndSizeAsync:settings useCache:useCache completion:^(NSUInteger cA, unsigned long long sA, NSUInteger cT, unsigned long long sT)
     {
-        [self _detectDataCountAndSize:settings
-            objectCountCurrent:&objectCountCurrent
-            objectSizeCurrent:&objectSizeCurrent
-            objectCountActive:&objectCountActive
-            objectSizeActive:&objectSizeActive
-            objectCountTotal:&objectCountTotal
-            objectSizeTotal:&objectSizeTotal
-            log:false
-        ];
-        
-        NSString *dataCountAndSize = [NSString stringWithFormat:NSLocalizedString(@"data_count_size", nil),
-            (int) objectCountActive, (int) objectCountTotal, [Helper formatBytes:objectSizeActive], [Helper formatBytes:objectSizeTotal]
-        ];
-        [TfDataCountSize setStringValue:dataCountAndSize];
-    });
+        [TfDataCountSize setStringValue:[NSString stringWithFormat:NSLocalizedString(@"data_count_size", nil),
+            (int) cA, (int) cT, [Helper formatBytes:sA], [Helper formatBytes:sT]
+        ]];
+        [TfDataCountSize release];
+    }];
 }
 
 

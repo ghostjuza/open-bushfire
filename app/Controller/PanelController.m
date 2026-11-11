@@ -859,9 +859,9 @@ static bool ANIMATE = false;
 
     [self.a_settings saveSettings];
     
-    // Detect data counts and sizes
+    // Only the "active" selection changed, not the data on disk -> answer from scan cache
     //
-    [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
+    [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize useCache:YES];
 }
 
 
@@ -897,10 +897,8 @@ static bool ANIMATE = false;
         
         // dispatch_get_current_queue | dispatch_get_main_queue
         //dispatch_async(self.myQueue, ^ {
-        dispatch_async(dispatch_get_main_queue(), ^ {
-            [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
-            [self restorePanel:1.0];
-        });
+        [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize useCache:YES];
+        [self restorePanel:1.0];
     }
 }
 
@@ -982,10 +980,8 @@ static bool ANIMATE = false;
     
     // dispatch_get_current_queue | dispatch_get_main_queue
     //dispatch_async(self.myQueue, ^{
-    dispatch_async(dispatch_get_main_queue(), ^ {
-        [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize];
-        [self restorePanel:1.0];
-    });
+    [Helper detectDataCountAndSizeForPanel:self.a_settings targetTextField:self.TfDataCountSize useCache:YES];
+    [self restorePanel:1.0];
 }
 
 
