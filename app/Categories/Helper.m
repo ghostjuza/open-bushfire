@@ -646,7 +646,8 @@ static NSFileManager *fileManager = nil;
 + (void) detectDataCountAndSizeAsync:(Settings*)settings
     useCache:(BOOL)useCache
     completion:(void (^)(NSUInteger countActive, unsigned long long sizeActive,
-                         NSUInteger countTotal, unsigned long long sizeTotal))completion
+                         NSUInteger countTotal, unsigned long long sizeTotal,
+                         NSDictionary *byCategory))completion
 {
     NSArray *categories = [Helper bf_dataCategoriesForSettings:settings];     // snapshot on caller thread
     const int64_t generation = atomic_fetch_add(&bfScanGeneration, 1) + 1;
@@ -671,8 +672,14 @@ static NSFileManager *fileManager = nil;
             NSUInteger cA, cT; unsigned long long sA, sT;
             [Helper bf_sumCategories:categories results:results countActive:&cA sizeActive:&sA countTotal:&cT sizeTotal:&sT];
             
+            // per category: name -> @{@"count": NSNumber, @"size": NSNumber}
+            NSMutableDictionary *byCategory = [NSMutableDictionary dictionaryWithCapacity:n];
+            for (NSUInteger i = 0; i < n; i++) {
+                byCategory[((BFDataCategory*) categories[i]).name] = @{ @"count": @(results[i].count), @"size": @(results[i].size) };
+            }
+            
             dispatch_async(dispatch_get_main_queue(), ^{
-                if (!isCancelled()) completion(cA, sA, cT, sT);
+                if (!isCancelled()) completion(cA, sA, cT, sT, byCategory);
             });
         }
         free(results);
@@ -740,15 +747,29 @@ static NSFileManager *fileManager = nil;
 
 + (void) detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize useCache:(BOOL)useCache
 {
+    [Helper detectDataCountAndSizeForPanel:settings targetTextField:TfDataCountSize useCache:useCache perCategory:nil];
+}
+
+
+/**
+ perCategory is called on the main queue together with the footer text:
+ name (e.g. "CleanCache") -> @{@"count": NSNumber, @"size": NSNumber}
+ */
++ (void) detectDataCountAndSizeForPanel:(Settings*)settings
+    targetTextField:(NSTextField*)TfDataCountSize
+    useCache:(BOOL)useCache
+    perCategory:(nullable void (^)(NSDictionary *byCategory))perCategory
+{
     [TfDataCountSize setStringValue:NSLocalizedString(@"data_count_size_detect", nil)];
     
-    [TfDataCountSize retain];   // MRC: keep the label alive until the result arrives
-    [Helper detectDataCountAndSizeAsync:settings useCache:useCache completion:^(NSUInteger cA, unsigned long long sA, NSUInteger cT, unsigned long long sT)
+    // The block retains TfDataCountSize itself (MRC copies the block in dispatch_async),
+    // and drops it again if the request is superseded.
+    [Helper detectDataCountAndSizeAsync:settings useCache:useCache completion:^(NSUInteger cA, unsigned long long sA, NSUInteger cT, unsigned long long sT, NSDictionary *byCategory)
     {
         [TfDataCountSize setStringValue:[NSString stringWithFormat:NSLocalizedString(@"data_count_size", nil),
             (int) cA, (int) cT, [Helper formatBytes:sA], [Helper formatBytes:sT]
         ]];
-        [TfDataCountSize release];
+        if (perCategory) perCategory(byCategory);
     }];
 }
 

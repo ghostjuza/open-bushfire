@@ -34,7 +34,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (int)pushCleanUpCounting:(unsigned long long)cleanupSize cleanupCount:(NSUInteger)cleanupCount;
 + (void)detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize;
 + (void)detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize useCache:(BOOL)useCache;
-+ (void)detectDataCountAndSizeAsync:(Settings*)settings useCache:(BOOL)useCache completion:(void (^)(NSUInteger countActive, unsigned long long sizeActive, NSUInteger countTotal, unsigned long long sizeTotal))completion;
++ (void)detectDataCountAndSizeAsync:(Settings*)settings useCache:(BOOL)useCache completion:(void (^)(NSUInteger countActive, unsigned long long sizeActive, NSUInteger countTotal, unsigned long long sizeTotal, NSDictionary *byCategory))completion;
++ (void)detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize useCache:(BOOL)useCache perCategory:(nullable void (^)(NSDictionary *byCategory))perCategory;
 + (void)detectAndPushCleanUpCounting:(Settings*)settings;
 
 /**
