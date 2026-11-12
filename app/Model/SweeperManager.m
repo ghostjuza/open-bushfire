@@ -5,6 +5,21 @@
 
 #include <syslog.h>
 
+// All cleanup runs share ONE serial queue: a second run (e.g. Safari quit twice, or "Burn now"
+// during a run) waits for the first one. So the final "rm /tmp/bfrmque.*" - which also sweeps
+// leftovers of crashed runs - can never delete the queue folder of a run that is still active.
+//
+static dispatch_queue_t bfCleanupQueue(void)
+{
+    static dispatch_queue_t q = NULL;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, 0);
+        q = dispatch_queue_create("app.bushfire.CleanupQueue", attr);
+    });
+    return q;
+}
+
 @interface SweeperManager()
 
 - (BOOL)m_deleteFile:(NSString *)path secure:(BOOL)secure;
@@ -29,85 +44,76 @@ static NSFileManager *fileManager = nil;
 - (void) cleanupWithCompletion:(SweeperManagerBlock)block
 {
     Settings *settings = [Settings settingsFromDefaults];
-    NSString *bfQue    = [Helper generateUuidString];
-    NSString *quePath  = [@"/tmp/bfrmque." stringByAppendingString:bfQue];
 
     if (!settings.CleanActive) {
         [Helper log:LOG_NOTICE withMessage:@"Delete Safari files: disabled."];
         return;
     }
     
-    if (![self createQueDirectoryForRemove:quePath]) {
-        [Helper log:LOG_WARNING withMessage:@"Create cleanup que: failed."];
-        return;
-    }
-    
     [[AppDelegate getMenubarController] setCleanIcon];
 
-    dispatch_queue_t queue = dispatch_queue_create("app.bushfire.CleanupQueue", NULL);
-    dispatch_group_t group = dispatch_group_create();
-
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-        dispatch_group_async(group, queue, ^{
-            
-            [Helper detectAndPushCleanUpCounting:settings];
-            bool burnSecure = settings.CleanSecureActive;
-
-            // Start burn ...
-            //
-            [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Prepare to burn = [secure:%@]", (burnSecure ? @"YES" : @"NO")]];
-
-            // Always try to burn Bushfire junk files !!!
-            //
-            [self m_moveToQueBushfireJunk:quePath];
-            
-            (!settings.CleanForms ?: [self m_moveToQueForms:quePath]);
-            (!settings.CleanLocation ?: [self m_moveToQueLocation:quePath]);
-            (!settings.CleanWebPageIcons ?: [self m_moveToQueWebPageIcons:quePath]);
-            (!settings.CleanHistory ?: [self m_moveToQueHistory:quePath]);
-            (!settings.CleanPreview ?: [self m_moveToQuePreview:quePath]);
-            (!settings.CleanTopSites ?: [self m_moveToQueTopSites:quePath]);
-            (!settings.CleanDownloads ?: [self m_moveToQueDownloads:quePath]);
-            (!settings.CleanMailDownloads ?: [self m_moveToQueMailDownloads:quePath]);
-            (!settings.CleanCache ?: [self m_moveToQueCache:quePath]);
-            // if (settings.CleanReadingList) [self m_moveToQueReadingList];
-            // if (settings.CleanRemoteNotifications) [self m_moveToQueRemoteNotifications];
-            
-            if (settings.CleanOfflineData) {
-                [self m_moveToQueOfflineData:quePath];
-                [self m_moveToQueLocalStorage:quePath];
-            }
-            
-            if (settings.CleanCookies) {
-                [self m_moveToQueCookies:quePath];
-                [self m_moveToQueFlashCookies:quePath];
-                //[self m_moveToQueSilverlightCookies:quePath];
-
-                if (settings.CleanZombieCookies) {
-                    [self m_restartCookieDemon];
-                }
-            }
-
-            [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Que Ident: %@", bfQue]];
-            [self m_deleteFile:@"/tmp/bfrmque.*" secure:burnSecure];
-            
-            if ([[Helper getFileManager] fileExistsAtPath:quePath]) {
-                [Helper log:LOG_WARNING withMessage:@"Delete cleanup que: failed."];
-            }
-            else {
-                [Helper log:LOG_WARNING withMessage:@"Cleanup que was deleted: successfully."];
-            }
-            
-            if (block) {
-                block([NSNumber numberWithBool:settings.CleanActive], nil);
-            }
-
-            [[AppDelegate getMenubarController] unsetCleanIcon];
-        });
-
-        dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-        dispatch_release(group);
+    dispatch_async(bfCleanupQueue(), ^{
+        NSString *bfQue   = [Helper generateUuidString];
+        NSString *quePath = [@"/tmp/bfrmque." stringByAppendingString:bfQue];
         
+        if (![self createQueDirectoryForRemove:quePath]) {
+            [Helper log:LOG_WARNING withMessage:@"Create cleanup que: failed."];
+            [[AppDelegate getMenubarController] unsetCleanIcon];
+            return;
+        }
+        
+        [Helper detectAndPushCleanUpCounting:settings];
+        bool burnSecure = settings.CleanSecureActive;
+
+        // Start burn ...
+        //
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Prepare to burn = [secure:%@]", (burnSecure ? @"YES" : @"NO")]];
+
+        // Always try to burn Bushfire junk files !!!
+        //
+        [self m_moveToQueBushfireJunk:quePath];
+        
+        (!settings.CleanForms ?: [self m_moveToQueForms:quePath]);
+        (!settings.CleanLocation ?: [self m_moveToQueLocation:quePath]);
+        (!settings.CleanWebPageIcons ?: [self m_moveToQueWebPageIcons:quePath]);
+        (!settings.CleanHistory ?: [self m_moveToQueHistory:quePath]);
+        (!settings.CleanPreview ?: [self m_moveToQuePreview:quePath]);
+        (!settings.CleanTopSites ?: [self m_moveToQueTopSites:quePath]);
+        (!settings.CleanDownloads ?: [self m_moveToQueDownloads:quePath]);
+        (!settings.CleanMailDownloads ?: [self m_moveToQueMailDownloads:quePath]);
+        (!settings.CleanCache ?: [self m_moveToQueCache:quePath]);
+        // if (settings.CleanReadingList) [self m_moveToQueReadingList];
+        // if (settings.CleanRemoteNotifications) [self m_moveToQueRemoteNotifications];
+        
+        if (settings.CleanOfflineData) {
+            [self m_moveToQueOfflineData:quePath];
+            [self m_moveToQueLocalStorage:quePath];
+        }
+        
+        if (settings.CleanCookies) {
+            [self m_moveToQueCookies:quePath];
+            [self m_moveToQueFlashCookies:quePath];
+            //[self m_moveToQueSilverlightCookies:quePath];
+
+            if (settings.CleanZombieCookies) {
+                [self m_restartCookieDemon];
+            }
+        }
+
+        [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Que Ident: %@", bfQue]];
+        [self m_deleteFile:@"/tmp/bfrmque.*" secure:burnSecure];
+        
+        if ([[Helper getFileManager] fileExistsAtPath:quePath]) {
+            [Helper log:LOG_WARNING withMessage:@"Delete cleanup que: failed."];
+        }
+        else {
+            [Helper log:LOG_WARNING withMessage:@"Cleanup que was deleted: successfully."];
+        }
+        
+        if (block) {
+            block([NSNumber numberWithBool:settings.CleanActive], nil);
+        }
+
         [[AppDelegate getMenubarController] unsetCleanIcon];
     });
 }
@@ -146,7 +152,9 @@ static NSFileManager *fileManager = nil;
     fileManager = [Helper getFileManager];
 
     NSError *error = nil;
-    [fileManager createDirectoryAtPath:quePath withIntermediateDirectories:YES attributes:nil error:&error];
+    // 0700: the files are moved out of ~/Library into /tmp for a moment - nobody else may read them there
+    NSDictionary *attributes = [NSDictionary dictionaryWithObject:[NSNumber numberWithShort:0700] forKey:NSFilePosixPermissions];
+    [fileManager createDirectoryAtPath:quePath withIntermediateDirectories:YES attributes:attributes error:&error];
 
     if (error == nil) {
         return true;

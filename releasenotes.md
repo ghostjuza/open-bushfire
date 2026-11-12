@@ -1,12 +1,16 @@
 # Release Notes
 
-### Build 2026.xx (2026-11-13)
+### Build 2026.109 (2026-11-13)
+`fix` Cleanup: Runs are now executed one after another; the temporary folder is only readable by you.  
+`fix` Cache: Nested folders are no longer counted twice.  
+`fix` Statistics: If the server is unreachable, results are stored and sent later.  
+`fix` Several small memory leaks fixed.  
 `fix` Downloads: Files listed in Safari's download list are now correctly found, counted and removed. Safari stores absolute paths, which Bushfire did not recognize before.  
 `fix` Download history: The quarantine database is now always cleaned thoroughly, so deleted entries no longer remain re adable in the file.  
 `improve` Cookies: Bushfire now counts the cookies actually stored in Safari's cookie files instead of just the files.  
 `improve` Footer: Object counts now use the thousands separator of your system language.  
 `change` "Overwrite files" is now labeled "Overwrite Files (HDD only)", with a hint and tooltip. Overwriting is not reliable on SSDs; FileVault is the better protection there.  
-`notice` Hide badge for Zombie-Cookies. 
+`notice` Hide badge for Zombie-Cookies.  
 
 ---
 

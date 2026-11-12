@@ -33,6 +33,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)moveFinderObject:(NSString*)fromSource to:(NSString*)destination asTerminalCommand:(bool)asTerminalCommand;
 + (NSImage*)flippImage:(NSImage*)image withFrame:(NSRect)destRect;
 + (int)pushCleanUpCounting:(unsigned long long)cleanupSize cleanupCount:(NSUInteger)cleanupCount;
++ (void)flushPendingCleanupPushes;
 + (void)detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize;
 + (void)detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize useCache:(BOOL)useCache;
 + (void)detectDataCountAndSizeAsync:(Settings*)settings useCache:(BOOL)useCache completion:(void (^)(NSUInteger countActive, unsigned long long sizeActive, NSUInteger countTotal, unsigned long long sizeTotal, NSDictionary *byCategory))completion;

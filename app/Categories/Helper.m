@@ -13,6 +13,7 @@
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <syslog.h>
+#include <os/log.h>
 #include <fts.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -171,6 +172,32 @@ static BOOL bfScanPath(NSString *path, BFScanResult *out, BOOL (^isCancelled)(vo
     return completed;
 }
 
+// Removes paths that lie inside another path of the same list (and exact duplicates).
+// E.g. ".../Caches/com.apple.Safari" is already part of ".../Caches": counting both would
+// count every object twice. Only used for counting - what is deleted stays untouched.
+//
+static NSArray *bfRemoveNestedPaths(NSArray *paths)
+{
+    // 1) normalize (no trailing slash) and drop exact duplicates, order is kept
+    NSMutableArray *unique = [NSMutableArray arrayWithCapacity:[paths count]];
+    for (NSString *p in paths) {
+        NSString *pn = ([p length] > 1 && [p hasSuffix:@"/"]) ? [p substringToIndex:[p length] - 1] : p;
+        if (![unique containsObject:pn]) [unique addObject:pn];
+    }
+    
+    // 2) drop every path that lies inside another path of the list
+    NSMutableArray *result = [NSMutableArray arrayWithCapacity:[unique count]];
+    for (NSString *pn in unique) {
+        BOOL covered = NO;
+        for (NSString *qn in unique) {
+            if (qn == pn) continue;
+            if ([pn hasPrefix:[qn stringByAppendingString:@"/"]]) { covered = YES; break; }
+        }
+        if (!covered) [result addObject:pn];
+    }
+    return result;
+}
+
 // Scans all paths of one category (or serves it from cache).
 // Returns NO if cancelled.
 //
@@ -193,7 +220,7 @@ static BOOL bfScanCategory(BFDataCategory *cat, BOOL useCache, BFScanResult *out
     NSArray *paths = cat.paths;
     if (cat.pathBlock) {
         // de-duplicate (e.g. HistoryIndex.sk is listed twice) so nothing is counted twice
-        paths = [[NSOrderedSet orderedSetWithArray:[Helper appendAbsolutePath:cat.pathBlock()]] array];
+        paths = bfRemoveNestedPaths([Helper appendAbsolutePath:cat.pathBlock()]);
     }
     
     BFScanResult r = {0, 0};
@@ -208,6 +235,105 @@ static BOOL bfScanCategory(BFDataCategory *cat, BOOL useCache, BFScanResult *out
     return YES;
 }
 
+// Cleanup statistics are kept in a small persistent queue (NSUserDefaults) until the server has
+// confirmed them. Offline, endpoint down, timeout or a 5xx answer -> the entry stays and is sent
+// with the next cleanup or at the next app start. Every entry carries its own timestamp ("ts").
+//
+static NSString * const kBFPendingPushKey = @"BFPendingCleanupPushes";
+static const NSUInteger kBFPendingPushMax = 200;     // oldest entries are dropped beyond this
+
+static NSObject *bfPushLock(void)
+{
+    static NSObject *lock = nil; static dispatch_once_t once;
+    dispatch_once(&once, ^{ lock = [[NSObject alloc] init]; });
+    return lock;
+}
+
+static void bfPendingAdd(unsigned long long size, NSUInteger count)
+{
+    @synchronized (bfPushLock()) {
+        NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+        NSMutableArray *list = [NSMutableArray arrayWithArray:[d arrayForKey:kBFPendingPushKey]];
+        [list addObject:[NSDictionary dictionaryWithObjectsAndKeys:
+            [NSNumber numberWithUnsignedLongLong:size], @"size",
+            [NSNumber numberWithUnsignedInteger:count], @"count",
+            [NSNumber numberWithLongLong:(long long) [[NSDate date] timeIntervalSince1970]], @"ts",
+            nil]];
+        while ([list count] > kBFPendingPushMax) [list removeObjectAtIndex:0];
+        [d setObject:list forKey:kBFPendingPushKey];
+    }
+}
+
+static NSUInteger bfPendingCount(void)
+{
+    @synchronized (bfPushLock()) {
+        return [[[NSUserDefaults standardUserDefaults] arrayForKey:kBFPendingPushKey] count];
+    }
+}
+
+// Sends one entry. YES = done with it (delivered, or rejected for good by a 4xx answer),
+// NO = try again later (no answer, timeout, 5xx, 408, 429).
+//
+static BOOL bfPendingSend(NSDictionary *entry)
+{
+    NSString *urlParam = [NSString stringWithFormat:@"size=%llu&count=%lu&id=%@&version=%@&build=%@&bundle=%@&ts=%lld",
+        [[entry objectForKey:@"size"] unsignedLongLongValue],
+        (unsigned long) [[entry objectForKey:@"count"] unsignedIntegerValue],
+        @"6ee589d4988fc5c3a154dc88c60bf721",
+        [Helper getOSVersionAsString],
+        [Helper getOSBuildAsString],
+        [Helper getBundleVersion],
+        [[entry objectForKey:@"ts"] longLongValue]
+    ];
+    NSString *url = [NSString stringWithFormat:@"%@caller/cleanup/counting.php?%@", [Helper getHost], urlParam];
+    
+    NSInteger status = 0;
+    [Curl call:url withMethod:@"PUT" withBody:NULL statusCode:&status];
+    
+    if (status >= 200 && status < 300) return YES;
+    if (status == 408 || status == 429 || status == 0 || status >= 500) return NO;
+    
+    [Helper log:LOG_WARNING withMessage:[NSString stringWithFormat:@"Push Cleanup Counting rejected [HTTP %ld], dropped.", (long) status]];
+    return YES;
+}
+
+// Sends queued entries, oldest first, until the queue is empty or one attempt fails.
+// Only one flush runs at a time; entries added meanwhile are picked up by the running loop.
+//
+static void bfPendingFlush(void)
+{
+    static BOOL flushing = NO;
+    @synchronized (bfPushLock()) {
+        if (flushing) return;
+        flushing = YES;
+    }
+    
+    while ([Helper isConnected]) {
+        NSDictionary *first = nil;
+        @synchronized (bfPushLock()) {
+            first = [[[[NSUserDefaults standardUserDefaults] arrayForKey:kBFPendingPushKey] firstObject] retain];
+        }
+        if (first == nil) break;
+        
+        BOOL done = bfPendingSend(first);
+        
+        if (done) {
+            @synchronized (bfPushLock()) {
+                NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+                NSMutableArray *list = [NSMutableArray arrayWithArray:[d arrayForKey:kBFPendingPushKey]];
+                if ([list count] > 0 && [[list objectAtIndex:0] isEqual:first]) {
+                    [list removeObjectAtIndex:0];
+                    [d setObject:list forKey:kBFPendingPushKey];
+                }
+            }
+        }
+        [first release];
+        if (!done) break;
+    }
+    
+    @synchronized (bfPushLock()) { flushing = NO; }
+}
+
 @implementation Helper
 
 static NSFileManager *fileManager = nil;
@@ -218,12 +344,31 @@ static NSFileManager *fileManager = nil;
         return;
     }
     
-    if (@available(macOS 10.14, *)) {
-        // @NOTE : maybe better use: syslog_r(LOG_ALERT, syslog_data_struct, "%s", "who:internal error 23");
-        syslog(logLevel, "syslog[%d]: %s", logLevel, [logMessage UTF8String]);
-    }
-    else {
-        NSLog(@"nslog[%d]: %@", logLevel, logMessage);
+    // Unified logging with subsystem + category, so Console can filter and show the lines like other apps.
+    static os_log_t bfLog = NULL;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSString *subsystem = [[NSBundle mainBundle] bundleIdentifier];
+        bfLog = os_log_create([(subsystem ?: @"Bushfire") UTF8String], "Bushfire");
+    });
+    
+    NSString *message = (logMessage ?: @"");
+    switch (logLevel) {
+        case LOG_EMERG:
+        case LOG_ALERT:
+        case LOG_CRIT:
+        case LOG_ERR:
+            os_log_error(bfLog, "%{public}@", message);
+            break;
+        case LOG_INFO:
+            os_log_info(bfLog, "%{public}@", message);
+            break;
+        case LOG_DEBUG:
+            os_log_debug(bfLog, "%{public}@", message);
+            break;
+        default:
+            os_log(bfLog, "%{public}@", message);
+            break;
     }
 }
 
@@ -387,28 +532,24 @@ static NSFileManager *fileManager = nil;
 
 + (int) pushCleanUpCounting:(unsigned long long) cleanupSize cleanupCount:(NSUInteger) cleanupCount
 {
-    BOOL isConnectionAvailable = [Helper isConnected];
+    // Queue first, then send: nothing is lost if the app quits or crashes while sending.
+    bfPendingAdd(cleanupSize, cleanupCount);
+    bfPendingFlush();
     
-    if (!isConnectionAvailable) {
-        return 503; // Service Unavailable
-    }
-    
-    NSString *urlParam = [NSString stringWithFormat:@"size=%lu&count=%lu&id=%@&version=%@&build=%@&bundle=%@",
-        (unsigned long) cleanupSize,
-        (unsigned long) cleanupCount,
-        @"6ee589d4988fc5c3a154dc88c60bf721",
-        [self getOSVersionAsString],
-        [self getOSBuildAsString],
-        [self getBundleVersion]
-    ];
-    NSString *url = [NSString stringWithFormat:@"%@caller/cleanup/counting.php?%@", [Helper getHost], urlParam];
-    NSString *response = [Curl call:url withMethod:@"PUT" withBody:NULL];
-    
-    if ([response isEqualToString:@"200"]) {
+    if (bfPendingCount() == 0) {
         return 200; // Successful
     }
     
-    return 400; // Bad request
+    [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Push Cleanup Counting postponed, %lu pending.", (unsigned long) bfPendingCount()]];
+    return 503; // Service Unavailable, will be sent later
+}
+
+// Called at app start: sends statistics that could not be delivered before.
++ (void) flushPendingCleanupPushes
+{
+    #if PUSH_CLEANUP_COUNTING == 1
+        bfPendingFlush();
+    #endif
 }
 
 + (unsigned long long) spyFinderObject:(NSString *)source objectCount:(nullable NSUInteger*)objectCount
@@ -514,7 +655,10 @@ static NSFileManager *fileManager = nil;
     [task launch];
     
     NSData   *data   = [file readDataToEndOfFile];
-    NSString *output = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    NSString *output = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
+    
+    [task waitUntilExit];
+    [task release];
     
     return output;
 }

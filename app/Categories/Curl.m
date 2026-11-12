@@ -32,9 +32,24 @@
 
 + (NSString *) call:(NSString *) url withMethod:(NSString *) method withBody:(NSString *) body
 {
+    NSInteger statusCode = 0;
+    return [Curl call:url withMethod:method withBody:body statusCode:&statusCode];
+}
+
+
+// Same as above, additionally returns the HTTP status code.
+// statusCode == 0 means: no HTTP answer at all (offline, host unreachable, timeout, bad URL).
+//
++ (NSString *) call:(NSString *) url withMethod:(NSString *) method withBody:(NSString *) body statusCode:(NSInteger *) statusCode
+{
+    if (statusCode) *statusCode = 0;
+    
     NSURL *nsUrl = [NSURL URLWithString:url];
+    if (nsUrl == nil) return nil;
+    
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:nsUrl];
     [request setHTTPMethod:method];
+    [request setTimeoutInterval:30];
 
     if (body != NULL && [body length] > 0) {
         NSData *postData = [body dataUsingEncoding:NSASCIIStringEncoding allowLossyConversion:YES];
@@ -45,20 +60,43 @@
         [request setHTTPBody:postData];
     }
     
-    __block NSData *responseData = nil;
+    // The completion handler may run after we stopped waiting (timeout). Therefore:
+    //  - the handler owns its own reference of the semaphore (dispatch_retain / dispatch_release),
+    //  - results go into a box that the handler's block keeps alive; they are only read after a
+    //    successful wait, so a late answer can neither crash nor leak.
+    NSMutableDictionary *box = [NSMutableDictionary dictionary];
     dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    dispatch_retain(semaphore);
+    
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        responseData = [data retain];
+        @synchronized (box) {
+            if (data) [box setObject:data forKey:@"data"];
+            if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+                [box setObject:[NSNumber numberWithInteger:[(NSHTTPURLResponse *) response statusCode]] forKey:@"status"];
+            }
+        }
         dispatch_semaphore_signal(semaphore);
+        dispatch_release(semaphore);
     }];
     [task resume];
-    dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 60 * NSEC_PER_SEC));
-    dispatch_release(semaphore);
-    [responseData autorelease];
     
-    NSString *responseString = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
-
-    return responseString;
+    long timedOut = dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 35 * NSEC_PER_SEC));
+    dispatch_release(semaphore);
+    
+    if (timedOut) {
+        [task cancel];
+        return nil;
+    }
+    
+    NSData *responseData = nil;
+    @synchronized (box) {
+        responseData = [[[box objectForKey:@"data"] retain] autorelease];
+        if (statusCode) *statusCode = [[box objectForKey:@"status"] integerValue];
+    }
+    
+    if (responseData == nil) return nil;
+    
+    return [[[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding] autorelease];
 }
 
 

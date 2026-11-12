@@ -27,12 +27,12 @@
 "downloads"                 = "Downloads";
 "downloads_mail"            = "Downloads (Mail)";
 "location"                  = "Ortshinweise";
-"offline_data"              = "Lokaler Speicher (HTML5)";
+"offline_data"              = "Lokaler Speicher";
 "reading_list"              = "Leseliste";
 "remote_notifications"      = "Mitteilungen";
 "web_page_icons"            = "Webseiten Icons";
 "clean_secure_active"       = "Dateien überschreiben (nur HDD)";
-"clean_secure_hint"         = "Auf SSDs nicht zuverlässig. Besser: FileVault einschalten.";
+"clean_secure_hint"         = "Auf SSDs nicht zuverlässig.";
 "clean_secure_tooltip"      = "Auf SSDs (und unter APFS) lassen sich Daten nicht zuverlässig überschreiben. Mit FileVault ist die gesamte Festplatte verschlüsselt: Reste gelöschter Dateien sind dann ohne Anmeldung nicht lesbar.";
 "log_enabled"               = "Log";
 "update"                    = "Softwareaktualisierung";
