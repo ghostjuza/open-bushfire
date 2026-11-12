@@ -404,7 +404,10 @@ static NSFileManager *fileManager = nil;
     NSArray *arrayList = [SweeperManager getDownloadsList];
     [self moveToQueByArrayList:arrayList toQuePath:quePath];
     
-    NSString *cmdDeleteFromLaunchService = @"sqlite3 ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV* 'delete from LSQuarantineEvent where LSQuarantineAgentBundleIdentifier = \"com.apple.Safari\"'";
+    // Always: overwrite the deleted rows inside the database (secure_delete) and rebuild
+    // the file (VACUUM), so no deleted entries stay in free pages.
+    // Only real database files (QuarantineEventsV<digit>), never their -wal/-shm/-journal companions.
+    NSString *cmdDeleteFromLaunchService = @"for f in ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV[0-9]; do [ -f \"$f\" ] && sqlite3 \"$f\" \"PRAGMA secure_delete=ON; delete from LSQuarantineEvent where LSQuarantineAgentBundleIdentifier = 'com.apple.Safari'; VACUUM;\" >/dev/null 2>&1; done";
     NSString *logMsg = @"";
     
     #if DEBUG == 1
@@ -414,23 +417,67 @@ static NSFileManager *fileManager = nil;
     [Helper runTerminalCommand:cmdDeleteFromLaunchService logMessage:logMsg];
 }
 
+/**
+ Path of a downloaded file, relative to the home directory, or nil if it must not be touched.
+ 
+ Safari writes DownloadEntryPath as an absolute path ("/Users/name/Downloads/file.dmg");
+ older versions used "~/Downloads/file.dmg". Both are accepted. Safety rules:
+ - only files inside the user's home directory
+ - no ".." components
+ - folders are never taken (only files)
+ - files that no longer exist are skipped
+ */
++ (NSString*) homeRelativePathForDownloadEntry:(id)entryPath
+{
+    if (![entryPath isKindOfClass:[NSString class]] || [(NSString*) entryPath length] == 0) {
+        return nil;
+    }
+    
+    NSString *home = [Helper getAbsolutePathWithDirectory:@"/"];   // "/Users/name/"
+    NSString *relative = nil;
+    
+    if ([entryPath hasPrefix:@"~/"]) {
+        relative = [entryPath substringFromIndex:2];
+    }
+    else if ([entryPath hasPrefix:home]) {
+        relative = [entryPath substringFromIndex:[home length]];
+    }
+    else {
+        return nil;
+    }
+    
+    if ([relative length] == 0 || [[relative pathComponents] containsObject:@".."]) {
+        return nil;
+    }
+    
+    BOOL isDirectory = NO;
+    NSString *absolute = [home stringByAppendingString:relative];
+    
+    if (![[Helper getFileManager] fileExistsAtPath:absolute isDirectory:&isDirectory] || isDirectory) {
+        return nil;
+    }
+    
+    return relative;
+}
+
 + (NSArray*) getDownloadsList
 {
     NSDictionary *dict = [Helper dictionaryWithPlist:[Helper getAbsolutePathWithDirectory:@"/Library/Safari/Downloads.plist"]];
     NSArray *downloads = [dict objectForKey:@"DownloadHistory"];
-    NSArray *arrayList = [NSArray arrayWithObjects:
-        @"Library/Safari/Downloads.plist",
-        nil
-    ];
+    NSMutableArray *arrayList = [NSMutableArray arrayWithObject:@"Library/Safari/Downloads.plist"];
     
-    for (int i = 0; i < downloads.count; i++)
+    if (![downloads isKindOfClass:[NSArray class]]) {
+        return arrayList;
+    }
+    
+    for (id download in downloads)
     {
-        NSDictionary *download  = [downloads objectAtIndex:i];
-        NSString     *entryPath = [download objectForKey:@"DownloadEntryPath"];
-        NSString     *path      = [entryPath stringByReplacingOccurrencesOfString:@"~/" withString:@""];
+        if (![download isKindOfClass:[NSDictionary class]]) continue;
         
-        if (path != nil) {
-            arrayList = [arrayList arrayByAddingObject:path];
+        NSString *path = [SweeperManager homeRelativePathForDownloadEntry:[download objectForKey:@"DownloadEntryPath"]];
+        
+        if (path != nil && ![arrayList containsObject:path]) {
+            [arrayList addObject:path];
         }
     }
     

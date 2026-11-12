@@ -20,6 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (unsigned long long)spyFinderObject:(NSString*)source objectCount:(nullable NSUInteger*)objectCount;
 + (unsigned long long)spyFolder:(NSString *)source objectCount:(nullable NSUInteger*)objectCount;
 + (unsigned long long)spyFile:(NSString*)source;
++ (NSString*)formatCount:(NSUInteger)count;
 + (NSString*)formatBytes:(unsigned long long)size;
 + (NSString*)runCommand:(NSString*)commandToRun;
 + (NSString*)generateUuidString;

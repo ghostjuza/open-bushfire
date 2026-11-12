@@ -1,12 +1,22 @@
 # Release Notes
 
+### Build 2026.xx (2026-11-13)
+`fix` Downloads: Files listed in Safari's download list are now correctly found, counted and removed. Safari stores absolute paths, which Bushfire did not recognize before.  
+`fix` Download history: The quarantine database is now always cleaned thoroughly, so deleted entries no longer remain re adable in the file.  
+`improve` Cookies: Bushfire now counts the cookies actually stored in Safari's cookie files instead of just the files.  
+`improve` Footer: Object counts now use the thousands separator of your system language.  
+`change` "Overwrite files" is now labeled "Overwrite Files (HDD only)", with a hint and tooltip. Overwriting is not reliable on SSDs; FileVault is the better protection there.  
+`notice` Hide badge for Zombie-Cookies. 
+
+---
+
 ### Build 2026.85 (2026-11-12)
-`new` Per-category badges: Every category in the panel now shows how many objects it contains and how much space they use, for example 1,200 / 567 MB. Categories with nothing to clean show a gray 0 / 0 B. The badge dims when you turn the category off.
-`new` Wider panel: The panel is 20 px wider so the badges fit next to the longest category names.
-`improved` Smoother panel: Counting objects and data size no longer runs on the main thread, so the panel stays responsive even with a large Safari cache or history.
-`improved` Faster scanning: Scanning folders needs fewer resources, and the categories are scanned in parallel in the background.
-`improved` Instant toggling: Switching a category on or off updates the totals immediately without rescanning your disk.
-`improved` Latest scan wins: When you click quickly, only the most recent scan is shown.
+`new` Per-category badges: Every category in the panel now shows how many objects it contains and how much space they use, for example 1,200 / 567 MB. Categories with nothing to clean show a gray 0 / 0 B. The badge dims when you turn the category off.  
+`new` Wider panel: The panel is 20 px wider so the badges fit next to the longest category names.  
+`improved` Smoother panel: Counting objects and data size no longer runs on the main thread, so the panel stays responsive even with a large Safari cache or history.  
+`improved` Faster scanning: Scanning folders needs fewer resources, and the categories are scanned in parallel in the background.  
+`improved` Instant toggling: Switching a category on or off updates the totals immediately without rescanning your disk.  
+`improved` Latest scan wins: When you click quickly, only the most recent scan is shown.  
 `fix` Double counting: One Safari history file was counted twice. Object counts and sizes in the panel and the anonymous cleanup statistics can be slightly lower than before, but they are now accurate.  
 
 ---

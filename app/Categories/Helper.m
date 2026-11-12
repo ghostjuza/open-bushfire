@@ -1,6 +1,8 @@
 #import "Helper.h"
 
 #import <Foundation/Foundation.h>
+#import <fcntl.h>
+#import <unistd.h>
 #import "Curl.h"
 #import "SweeperManager.h"
 #import "Settings.h"
@@ -30,12 +32,13 @@ typedef struct {
 @interface BFDataCategory : NSObject
 @property (nonatomic, copy)   NSString *name;
 @property (nonatomic, retain) NSArray  *paths;     // absolute paths, de-duplicated
+@property (nonatomic, copy)   NSArray *(^pathBlock)(void);  // resolves the paths lazily, on the worker thread
 @property (nonatomic, assign) BOOL      enabled;   // counts as "active"
 @end
 
 @implementation BFDataCategory
-@synthesize name, paths, enabled;
-- (void) dealloc { [name release]; [paths release]; [super dealloc]; }
+@synthesize name, paths, pathBlock, enabled;
+- (void) dealloc { [name release]; [paths release]; [pathBlock release]; [super dealloc]; }
 @end
 
 // Result cache. A category is only stored after a *complete* scan, so a cancelled
@@ -62,6 +65,51 @@ static NSMutableDictionary *bfCache(void)
 
 // Generation counter: every new async request bumps it, older scans notice and abort.
 static _Atomic int64_t bfScanGeneration = 0;
+
+// Number of cookies inside a Safari *.binarycookies file.
+// Format: "cook", page count (big endian), page sizes (big endian), then the pages.
+// Every page starts with 00 00 01 00 followed by its cookie count (little endian).
+// Only headers are read (pread), not the cookie data itself. Returns NO if the file
+// cannot be read or does not look like a binarycookies file; the caller then counts it as 1 object.
+//
+static BOOL bfCountBinaryCookies(const char *path, NSUInteger *outCount)
+{
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) return NO;
+    
+    BOOL ok = NO;
+    uint8_t head[8];
+    uint8_t *sizes = NULL;
+    
+    do {
+        if (pread(fd, head, 8, 0) != 8 || memcmp(head, "cook", 4) != 0) break;
+        uint32_t pages = ((uint32_t) head[4] << 24) | ((uint32_t) head[5] << 16) | ((uint32_t) head[6] << 8) | head[7];
+        if (pages > 100000) break;                      // implausible -> not a valid file
+        if (pages == 0) { *outCount = 0; ok = YES; break; }
+        
+        size_t sizesLen = (size_t) pages * 4;
+        sizes = malloc(sizesLen);
+        if (sizes == NULL || pread(fd, sizes, sizesLen, 8) != (ssize_t) sizesLen) break;
+        
+        off_t offset = 8 + (off_t) sizesLen;
+        NSUInteger total = 0;
+        BOOL valid = YES;
+        for (uint32_t i = 0; i < pages; i++) {
+            uint32_t pageSize = ((uint32_t) sizes[i*4] << 24) | ((uint32_t) sizes[i*4+1] << 16) | ((uint32_t) sizes[i*4+2] << 8) | sizes[i*4+3];
+            uint8_t ph[8];
+            if (pageSize < 8 || pread(fd, ph, 8, offset) != 8 || ph[0] != 0x00 || ph[1] != 0x00 || ph[2] != 0x01 || ph[3] != 0x00) { valid = NO; break; }
+            total += ((uint32_t) ph[4]) | ((uint32_t) ph[5] << 8) | ((uint32_t) ph[6] << 16) | ((uint32_t) ph[7] << 24);
+            offset += pageSize;
+        }
+        if (!valid) break;
+        *outCount = total;
+        ok = YES;
+    } while (0);
+    
+    free(sizes);
+    close(fd);
+    return ok;
+}
 
 // Fast recursive size/count with fts(3): one pass, no NSString/NSDictionary per file.
 // Semantics identical to the old subpathsAtPath + attributesOfItemAtPath code:
@@ -103,6 +151,16 @@ static BOOL bfScanPath(NSString *path, BFScanResult *out, BOOL (^isCancelled)(vo
             default:
                 break;
         }
+        
+        // Cookie files: count the cookies inside, not the file itself.
+        if (e->fts_info == FTS_F && e->fts_pathlen > 14 && strcmp(e->fts_path + e->fts_pathlen - 14, ".binarycookies") == 0) {
+            NSUInteger cookies = 0;
+            if (bfCountBinaryCookies(e->fts_path, &cookies)) {
+                count += cookies;
+                if (e->fts_statp) size += (unsigned long long) e->fts_statp->st_size;
+                continue;
+            }
+        }
         count++;
         if (e->fts_statp) size += (unsigned long long) e->fts_statp->st_size;
     }
@@ -130,8 +188,16 @@ static BOOL bfScanCategory(BFDataCategory *cat, BOOL useCache, BFScanResult *out
         [hit release];
     }
     
+    // Resolve the path list only now (cache miss, worker thread): some lists, e.g. the
+    // downloads, read a plist from disk and must not run on the main thread.
+    NSArray *paths = cat.paths;
+    if (cat.pathBlock) {
+        // de-duplicate (e.g. HistoryIndex.sk is listed twice) so nothing is counted twice
+        paths = [[NSOrderedSet orderedSetWithArray:[Helper appendAbsolutePath:cat.pathBlock()]] array];
+    }
+    
     BFScanResult r = {0, 0};
-    for (NSString *p in cat.paths) {
+    for (NSString *p in paths) {
         if (!bfScanPath(p, &r, isCancelled)) return NO;
     }
     
@@ -388,6 +454,21 @@ static NSFileManager *fileManager = nil;
 }
 
 
++ (NSString*) formatCount:(NSUInteger)count
+{
+    // Count with the thousands separator of the user's locale (e.g. 16.864 / 16,864)
+    static NSNumberFormatter *fmt = nil;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        fmt = [[NSNumberFormatter alloc] init];
+        [fmt setNumberStyle:NSNumberFormatterDecimalStyle];
+    });
+    NSString *s = nil;
+    @synchronized (fmt) { s = [fmt stringFromNumber:[NSNumber numberWithUnsignedInteger:count]]; }
+    return s ? s : [NSString stringWithFormat:@"%lu", (unsigned long) count];
+}
+
+
 + (NSString*) formatBytes:(unsigned long long)size
 {
     NSString *literalText = @"Bytes";
@@ -592,28 +673,27 @@ static NSFileManager *fileManager = nil;
 {
     BOOL on = settings.CleanActive;
     
-    struct { NSString *name; NSArray *list; BOOL enabled; } defs[] = {
-        { @"CleanForms",        [SweeperManager getFormsList],        on && settings.CleanForms },
-        { @"CleanLocation",     [SweeperManager getLocationList],     on && settings.CleanLocation },
-        { @"CleanPreview",      [SweeperManager getPreviewList],      on && settings.CleanPreview },
-        { @"CleanTopSites",     [SweeperManager getTopSitesList],     on && settings.CleanTopSites },
-        { @"CleanCache",        [SweeperManager getCacheList],        on && settings.CleanCache },
-        { @"CleanWebPageIcons", [SweeperManager getWebPageIconsList], on && settings.CleanWebPageIcons },
-        { @"CleanHistory",      [SweeperManager getHistoryList],      on && settings.CleanHistory },
-        { @"CleanDownloads",    [SweeperManager getDownloadsList],    on && settings.CleanDownloads },
-        { @"CleanCookies",      [SweeperManager getCookiesList],      on && settings.CleanCookies },
-        { @"CleanFlashCookies", [SweeperManager getFlashCookiesList], on && settings.CleanCookies },
-        { @"CleanOfflineData",  [SweeperManager getOfflineDataList],  on && settings.CleanOfflineData },
-        { @"CleanLocalStorage", [SweeperManager getLocalStorageList], on && settings.CleanOfflineData },
+    struct { NSString *name; NSArray *(^list)(void); BOOL enabled; } defs[] = {
+        { @"CleanForms",        ^NSArray*{ return [SweeperManager getFormsList]; },        on && settings.CleanForms },
+        { @"CleanLocation",     ^NSArray*{ return [SweeperManager getLocationList]; },     on && settings.CleanLocation },
+        { @"CleanPreview",      ^NSArray*{ return [SweeperManager getPreviewList]; },      on && settings.CleanPreview },
+        { @"CleanTopSites",     ^NSArray*{ return [SweeperManager getTopSitesList]; },     on && settings.CleanTopSites },
+        { @"CleanCache",        ^NSArray*{ return [SweeperManager getCacheList]; },        on && settings.CleanCache },
+        { @"CleanWebPageIcons", ^NSArray*{ return [SweeperManager getWebPageIconsList]; }, on && settings.CleanWebPageIcons },
+        { @"CleanHistory",      ^NSArray*{ return [SweeperManager getHistoryList]; },      on && settings.CleanHistory },
+        { @"CleanDownloads",    ^NSArray*{ return [SweeperManager getDownloadsList]; },    on && settings.CleanDownloads },
+        { @"CleanCookies",      ^NSArray*{ return [SweeperManager getCookiesList]; },      on && settings.CleanCookies },
+        { @"CleanFlashCookies", ^NSArray*{ return [SweeperManager getFlashCookiesList]; }, on && settings.CleanCookies },
+        { @"CleanOfflineData",  ^NSArray*{ return [SweeperManager getOfflineDataList]; },  on && settings.CleanOfflineData },
+        { @"CleanLocalStorage", ^NSArray*{ return [SweeperManager getLocalStorageList]; }, on && settings.CleanOfflineData },
     };
     
     NSMutableArray *result = [NSMutableArray array];
     for (size_t i = 0; i < sizeof(defs) / sizeof(defs[0]); i++) {
         BFDataCategory *cat = [[[BFDataCategory alloc] init] autorelease];
-        cat.name    = defs[i].name;
-        // de-duplicate (e.g. HistoryIndex.sk is listed twice) so nothing is counted twice
-        cat.paths   = [[NSOrderedSet orderedSetWithArray:[Helper appendAbsolutePath:defs[i].list]] array];
-        cat.enabled = defs[i].enabled;
+        cat.name      = defs[i].name;
+        cat.pathBlock = defs[i].list;      // copied by the property
+        cat.enabled   = defs[i].enabled;
         [result addObject:cat];
     }
     return result;
@@ -767,7 +847,7 @@ static NSFileManager *fileManager = nil;
     [Helper detectDataCountAndSizeAsync:settings useCache:useCache completion:^(NSUInteger cA, unsigned long long sA, NSUInteger cT, unsigned long long sT, NSDictionary *byCategory)
     {
         [TfDataCountSize setStringValue:[NSString stringWithFormat:NSLocalizedString(@"data_count_size", nil),
-            (int) cA, (int) cT, [Helper formatBytes:sA], [Helper formatBytes:sT]
+            [Helper formatCount:cA], [Helper formatCount:cT], [Helper formatBytes:sA], [Helper formatBytes:sT]
         ]];
         if (perCategory) perCategory(byCategory);
     }];
