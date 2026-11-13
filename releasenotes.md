@@ -1,5 +1,12 @@
 # Release Notes
 
+### Build 2026.131 (2026-11-13)
+`new` Added a 'Panel animation' option in the settings to switch the panel's opening and collapsing animation off.
+
+![Screenshot with new panel animation checkbox](img/panel-animation-chackbox.png)  
+
+---
+
 ### Build 2026.109 (2026-11-13)
 `fix` Cleanup: Runs are now executed one after another; the temporary folder is only readable by you.  
 `fix` Cache: Nested folders are no longer counted twice.  
@@ -22,6 +29,8 @@
 `improved` Instant toggling: Switching a category on or off updates the totals immediately without rescanning your disk.  
 `improved` Latest scan wins: When you click quickly, only the most recent scan is shown.  
 `fix` Double counting: One Safari history file was counted twice. Object counts and sizes in the panel and the anonymous cleanup statistics can be slightly lower than before, but they are now accurate.  
+
+![Screenshot with new category badges](img/category-badges.png)  
 
 ---
 

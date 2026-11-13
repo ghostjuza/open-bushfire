@@ -19,6 +19,7 @@
 @property BOOL SipEnabledConfirmed;
 @property BOOL SipUnknownConfirmed;
 @property BOOL LogEnabled;
+@property BOOL PanelAnimationEnabled;
 
 + (id)settingsFromDefaults;
 - (void)saveSettings;

@@ -35,6 +35,7 @@
 "clean_secure_hint"         = "Not reliable on SSDs.";
 "clean_secure_tooltip"      = "Data cannot be reliably overwritten on SSDs (or on APFS). With FileVault the entire disk is encrypted, so remnants of deleted files cannot be read without logging in.";
 "log_enabled"               = "Log";
+"panel_animation"           = "Panel animation";
 "update"                    = "Check for Update";
 "ok"                        = "OK";
 "cancel"                    = "Cancel";
