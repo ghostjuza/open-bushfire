@@ -56,6 +56,7 @@
     [self.TfVersion setStringValue:[NSString stringWithFormat:NSLocalizedString(@"version", nil), version, versionTag]];
     
     [self.TfCopyright setStringValue:[NSString stringWithFormat:NSLocalizedString(@"about_copyright", nil), [dateFormatter stringFromDate:[NSDate date]]]];
+    [dateFormatter release];
     
     [self.BtnClose setTarget:self];
     [self.BtnClose setAction:@selector(actionClose:)];

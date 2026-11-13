@@ -1,6 +1,8 @@
 #import "Helper.h"
 
 #import <Foundation/Foundation.h>
+#import <fcntl.h>
+#import <unistd.h>
 #import "Curl.h"
 #import "SweeperManager.h"
 #import "Settings.h"
@@ -11,6 +13,7 @@
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <syslog.h>
+#include <os/log.h>
 #include <fts.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -30,12 +33,13 @@ typedef struct {
 @interface BFDataCategory : NSObject
 @property (nonatomic, copy)   NSString *name;
 @property (nonatomic, retain) NSArray  *paths;     // absolute paths, de-duplicated
+@property (nonatomic, copy)   NSArray *(^pathBlock)(void);  // resolves the paths lazily, on the worker thread
 @property (nonatomic, assign) BOOL      enabled;   // counts as "active"
 @end
 
 @implementation BFDataCategory
-@synthesize name, paths, enabled;
-- (void) dealloc { [name release]; [paths release]; [super dealloc]; }
+@synthesize name, paths, pathBlock, enabled;
+- (void) dealloc { [name release]; [paths release]; [pathBlock release]; [super dealloc]; }
 @end
 
 // Result cache. A category is only stored after a *complete* scan, so a cancelled
@@ -62,6 +66,51 @@ static NSMutableDictionary *bfCache(void)
 
 // Generation counter: every new async request bumps it, older scans notice and abort.
 static _Atomic int64_t bfScanGeneration = 0;
+
+// Number of cookies inside a Safari *.binarycookies file.
+// Format: "cook", page count (big endian), page sizes (big endian), then the pages.
+// Every page starts with 00 00 01 00 followed by its cookie count (little endian).
+// Only headers are read (pread), not the cookie data itself. Returns NO if the file
+// cannot be read or does not look like a binarycookies file; the caller then counts it as 1 object.
+//
+static BOOL bfCountBinaryCookies(const char *path, NSUInteger *outCount)
+{
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) return NO;
+    
+    BOOL ok = NO;
+    uint8_t head[8];
+    uint8_t *sizes = NULL;
+    
+    do {
+        if (pread(fd, head, 8, 0) != 8 || memcmp(head, "cook", 4) != 0) break;
+        uint32_t pages = ((uint32_t) head[4] << 24) | ((uint32_t) head[5] << 16) | ((uint32_t) head[6] << 8) | head[7];
+        if (pages > 100000) break;                      // implausible -> not a valid file
+        if (pages == 0) { *outCount = 0; ok = YES; break; }
+        
+        size_t sizesLen = (size_t) pages * 4;
+        sizes = malloc(sizesLen);
+        if (sizes == NULL || pread(fd, sizes, sizesLen, 8) != (ssize_t) sizesLen) break;
+        
+        off_t offset = 8 + (off_t) sizesLen;
+        NSUInteger total = 0;
+        BOOL valid = YES;
+        for (uint32_t i = 0; i < pages; i++) {
+            uint32_t pageSize = ((uint32_t) sizes[i*4] << 24) | ((uint32_t) sizes[i*4+1] << 16) | ((uint32_t) sizes[i*4+2] << 8) | sizes[i*4+3];
+            uint8_t ph[8];
+            if (pageSize < 8 || pread(fd, ph, 8, offset) != 8 || ph[0] != 0x00 || ph[1] != 0x00 || ph[2] != 0x01 || ph[3] != 0x00) { valid = NO; break; }
+            total += ((uint32_t) ph[4]) | ((uint32_t) ph[5] << 8) | ((uint32_t) ph[6] << 16) | ((uint32_t) ph[7] << 24);
+            offset += pageSize;
+        }
+        if (!valid) break;
+        *outCount = total;
+        ok = YES;
+    } while (0);
+    
+    free(sizes);
+    close(fd);
+    return ok;
+}
 
 // Fast recursive size/count with fts(3): one pass, no NSString/NSDictionary per file.
 // Semantics identical to the old subpathsAtPath + attributesOfItemAtPath code:
@@ -103,6 +152,16 @@ static BOOL bfScanPath(NSString *path, BFScanResult *out, BOOL (^isCancelled)(vo
             default:
                 break;
         }
+        
+        // Cookie files: count the cookies inside, not the file itself.
+        if (e->fts_info == FTS_F && e->fts_pathlen > 14 && strcmp(e->fts_path + e->fts_pathlen - 14, ".binarycookies") == 0) {
+            NSUInteger cookies = 0;
+            if (bfCountBinaryCookies(e->fts_path, &cookies)) {
+                count += cookies;
+                if (e->fts_statp) size += (unsigned long long) e->fts_statp->st_size;
+                continue;
+            }
+        }
         count++;
         if (e->fts_statp) size += (unsigned long long) e->fts_statp->st_size;
     }
@@ -111,6 +170,32 @@ static BOOL bfScanPath(NSString *path, BFScanResult *out, BOOL (^isCancelled)(vo
     
     if (completed) { out->count += count; out->size += size; }
     return completed;
+}
+
+// Removes paths that lie inside another path of the same list (and exact duplicates).
+// E.g. ".../Caches/com.apple.Safari" is already part of ".../Caches": counting both would
+// count every object twice. Only used for counting - what is deleted stays untouched.
+//
+static NSArray *bfRemoveNestedPaths(NSArray *paths)
+{
+    // 1) normalize (no trailing slash) and drop exact duplicates, order is kept
+    NSMutableArray *unique = [NSMutableArray arrayWithCapacity:[paths count]];
+    for (NSString *p in paths) {
+        NSString *pn = ([p length] > 1 && [p hasSuffix:@"/"]) ? [p substringToIndex:[p length] - 1] : p;
+        if (![unique containsObject:pn]) [unique addObject:pn];
+    }
+    
+    // 2) drop every path that lies inside another path of the list
+    NSMutableArray *result = [NSMutableArray arrayWithCapacity:[unique count]];
+    for (NSString *pn in unique) {
+        BOOL covered = NO;
+        for (NSString *qn in unique) {
+            if (qn == pn) continue;
+            if ([pn hasPrefix:[qn stringByAppendingString:@"/"]]) { covered = YES; break; }
+        }
+        if (!covered) [result addObject:pn];
+    }
+    return result;
 }
 
 // Scans all paths of one category (or serves it from cache).
@@ -130,8 +215,16 @@ static BOOL bfScanCategory(BFDataCategory *cat, BOOL useCache, BFScanResult *out
         [hit release];
     }
     
+    // Resolve the path list only now (cache miss, worker thread): some lists, e.g. the
+    // downloads, read a plist from disk and must not run on the main thread.
+    NSArray *paths = cat.paths;
+    if (cat.pathBlock) {
+        // de-duplicate (e.g. HistoryIndex.sk is listed twice) so nothing is counted twice
+        paths = bfRemoveNestedPaths([Helper appendAbsolutePath:cat.pathBlock()]);
+    }
+    
     BFScanResult r = {0, 0};
-    for (NSString *p in cat.paths) {
+    for (NSString *p in paths) {
         if (!bfScanPath(p, &r, isCancelled)) return NO;
     }
     
@@ -140,6 +233,105 @@ static BOOL bfScanCategory(BFDataCategory *cat, BOOL useCache, BFScanResult *out
     
     *out = r;
     return YES;
+}
+
+// Cleanup statistics are kept in a small persistent queue (NSUserDefaults) until the server has
+// confirmed them. Offline, endpoint down, timeout or a 5xx answer -> the entry stays and is sent
+// with the next cleanup or at the next app start. Every entry carries its own timestamp ("ts").
+//
+static NSString * const kBFPendingPushKey = @"BFPendingCleanupPushes";
+static const NSUInteger kBFPendingPushMax = 200;     // oldest entries are dropped beyond this
+
+static NSObject *bfPushLock(void)
+{
+    static NSObject *lock = nil; static dispatch_once_t once;
+    dispatch_once(&once, ^{ lock = [[NSObject alloc] init]; });
+    return lock;
+}
+
+static void bfPendingAdd(unsigned long long size, NSUInteger count)
+{
+    @synchronized (bfPushLock()) {
+        NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+        NSMutableArray *list = [NSMutableArray arrayWithArray:[d arrayForKey:kBFPendingPushKey]];
+        [list addObject:[NSDictionary dictionaryWithObjectsAndKeys:
+            [NSNumber numberWithUnsignedLongLong:size], @"size",
+            [NSNumber numberWithUnsignedInteger:count], @"count",
+            [NSNumber numberWithLongLong:(long long) [[NSDate date] timeIntervalSince1970]], @"ts",
+            nil]];
+        while ([list count] > kBFPendingPushMax) [list removeObjectAtIndex:0];
+        [d setObject:list forKey:kBFPendingPushKey];
+    }
+}
+
+static NSUInteger bfPendingCount(void)
+{
+    @synchronized (bfPushLock()) {
+        return [[[NSUserDefaults standardUserDefaults] arrayForKey:kBFPendingPushKey] count];
+    }
+}
+
+// Sends one entry. YES = done with it (delivered, or rejected for good by a 4xx answer),
+// NO = try again later (no answer, timeout, 5xx, 408, 429).
+//
+static BOOL bfPendingSend(NSDictionary *entry)
+{
+    NSString *urlParam = [NSString stringWithFormat:@"size=%llu&count=%lu&id=%@&version=%@&build=%@&bundle=%@&ts=%lld",
+        [[entry objectForKey:@"size"] unsignedLongLongValue],
+        (unsigned long) [[entry objectForKey:@"count"] unsignedIntegerValue],
+        @"6ee589d4988fc5c3a154dc88c60bf721",
+        [Helper getOSVersionAsString],
+        [Helper getOSBuildAsString],
+        [Helper getBundleVersion],
+        [[entry objectForKey:@"ts"] longLongValue]
+    ];
+    NSString *url = [NSString stringWithFormat:@"%@caller/cleanup/counting.php?%@", [Helper getHost], urlParam];
+    
+    NSInteger status = 0;
+    [Curl call:url withMethod:@"PUT" withBody:NULL statusCode:&status];
+    
+    if (status >= 200 && status < 300) return YES;
+    if (status == 408 || status == 429 || status == 0 || status >= 500) return NO;
+    
+    [Helper log:LOG_WARNING withMessage:[NSString stringWithFormat:@"Push Cleanup Counting rejected [HTTP %ld], dropped.", (long) status]];
+    return YES;
+}
+
+// Sends queued entries, oldest first, until the queue is empty or one attempt fails.
+// Only one flush runs at a time; entries added meanwhile are picked up by the running loop.
+//
+static void bfPendingFlush(void)
+{
+    static BOOL flushing = NO;
+    @synchronized (bfPushLock()) {
+        if (flushing) return;
+        flushing = YES;
+    }
+    
+    while ([Helper isConnected]) {
+        NSDictionary *first = nil;
+        @synchronized (bfPushLock()) {
+            first = [[[[NSUserDefaults standardUserDefaults] arrayForKey:kBFPendingPushKey] firstObject] retain];
+        }
+        if (first == nil) break;
+        
+        BOOL done = bfPendingSend(first);
+        
+        if (done) {
+            @synchronized (bfPushLock()) {
+                NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+                NSMutableArray *list = [NSMutableArray arrayWithArray:[d arrayForKey:kBFPendingPushKey]];
+                if ([list count] > 0 && [[list objectAtIndex:0] isEqual:first]) {
+                    [list removeObjectAtIndex:0];
+                    [d setObject:list forKey:kBFPendingPushKey];
+                }
+            }
+        }
+        [first release];
+        if (!done) break;
+    }
+    
+    @synchronized (bfPushLock()) { flushing = NO; }
 }
 
 @implementation Helper
@@ -152,12 +344,31 @@ static NSFileManager *fileManager = nil;
         return;
     }
     
-    if (@available(macOS 10.14, *)) {
-        // @NOTE : maybe better use: syslog_r(LOG_ALERT, syslog_data_struct, "%s", "who:internal error 23");
-        syslog(logLevel, "syslog[%d]: %s", logLevel, [logMessage UTF8String]);
-    }
-    else {
-        NSLog(@"nslog[%d]: %@", logLevel, logMessage);
+    // Unified logging with subsystem + category, so Console can filter and show the lines like other apps.
+    static os_log_t bfLog = NULL;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSString *subsystem = [[NSBundle mainBundle] bundleIdentifier];
+        bfLog = os_log_create([(subsystem ?: @"Bushfire") UTF8String], "Bushfire");
+    });
+    
+    NSString *message = (logMessage ?: @"");
+    switch (logLevel) {
+        case LOG_EMERG:
+        case LOG_ALERT:
+        case LOG_CRIT:
+        case LOG_ERR:
+            os_log_error(bfLog, "%{public}@", message);
+            break;
+        case LOG_INFO:
+            os_log_info(bfLog, "%{public}@", message);
+            break;
+        case LOG_DEBUG:
+            os_log_debug(bfLog, "%{public}@", message);
+            break;
+        default:
+            os_log(bfLog, "%{public}@", message);
+            break;
     }
 }
 
@@ -321,28 +532,24 @@ static NSFileManager *fileManager = nil;
 
 + (int) pushCleanUpCounting:(unsigned long long) cleanupSize cleanupCount:(NSUInteger) cleanupCount
 {
-    BOOL isConnectionAvailable = [Helper isConnected];
+    // Queue first, then send: nothing is lost if the app quits or crashes while sending.
+    bfPendingAdd(cleanupSize, cleanupCount);
+    bfPendingFlush();
     
-    if (!isConnectionAvailable) {
-        return 503; // Service Unavailable
-    }
-    
-    NSString *urlParam = [NSString stringWithFormat:@"size=%lu&count=%lu&id=%@&version=%@&build=%@&bundle=%@",
-        (unsigned long) cleanupSize,
-        (unsigned long) cleanupCount,
-        @"6ee589d4988fc5c3a154dc88c60bf721",
-        [self getOSVersionAsString],
-        [self getOSBuildAsString],
-        [self getBundleVersion]
-    ];
-    NSString *url = [NSString stringWithFormat:@"%@caller/cleanup/counting.php?%@", [Helper getHost], urlParam];
-    NSString *response = [Curl call:url withMethod:@"PUT" withBody:NULL];
-    
-    if ([response isEqualToString:@"200"]) {
+    if (bfPendingCount() == 0) {
         return 200; // Successful
     }
     
-    return 400; // Bad request
+    [Helper log:LOG_NOTICE withMessage:[NSString stringWithFormat:@"Push Cleanup Counting postponed, %lu pending.", (unsigned long) bfPendingCount()]];
+    return 503; // Service Unavailable, will be sent later
+}
+
+// Called at app start: sends statistics that could not be delivered before.
++ (void) flushPendingCleanupPushes
+{
+    #if PUSH_CLEANUP_COUNTING == 1
+        bfPendingFlush();
+    #endif
 }
 
 + (unsigned long long) spyFinderObject:(NSString *)source objectCount:(nullable NSUInteger*)objectCount
@@ -385,6 +592,21 @@ static NSFileManager *fileManager = nil;
     }
     
     return objectSize;
+}
+
+
++ (NSString*) formatCount:(NSUInteger)count
+{
+    // Count with the thousands separator of the user's locale (e.g. 16.864 / 16,864)
+    static NSNumberFormatter *fmt = nil;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        fmt = [[NSNumberFormatter alloc] init];
+        [fmt setNumberStyle:NSNumberFormatterDecimalStyle];
+    });
+    NSString *s = nil;
+    @synchronized (fmt) { s = [fmt stringFromNumber:[NSNumber numberWithUnsignedInteger:count]]; }
+    return s ? s : [NSString stringWithFormat:@"%lu", (unsigned long) count];
 }
 
 
@@ -433,7 +655,10 @@ static NSFileManager *fileManager = nil;
     [task launch];
     
     NSData   *data   = [file readDataToEndOfFile];
-    NSString *output = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    NSString *output = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
+    
+    [task waitUntilExit];
+    [task release];
     
     return output;
 }
@@ -592,28 +817,27 @@ static NSFileManager *fileManager = nil;
 {
     BOOL on = settings.CleanActive;
     
-    struct { NSString *name; NSArray *list; BOOL enabled; } defs[] = {
-        { @"CleanForms",        [SweeperManager getFormsList],        on && settings.CleanForms },
-        { @"CleanLocation",     [SweeperManager getLocationList],     on && settings.CleanLocation },
-        { @"CleanPreview",      [SweeperManager getPreviewList],      on && settings.CleanPreview },
-        { @"CleanTopSites",     [SweeperManager getTopSitesList],     on && settings.CleanTopSites },
-        { @"CleanCache",        [SweeperManager getCacheList],        on && settings.CleanCache },
-        { @"CleanWebPageIcons", [SweeperManager getWebPageIconsList], on && settings.CleanWebPageIcons },
-        { @"CleanHistory",      [SweeperManager getHistoryList],      on && settings.CleanHistory },
-        { @"CleanDownloads",    [SweeperManager getDownloadsList],    on && settings.CleanDownloads },
-        { @"CleanCookies",      [SweeperManager getCookiesList],      on && settings.CleanCookies },
-        { @"CleanFlashCookies", [SweeperManager getFlashCookiesList], on && settings.CleanCookies },
-        { @"CleanOfflineData",  [SweeperManager getOfflineDataList],  on && settings.CleanOfflineData },
-        { @"CleanLocalStorage", [SweeperManager getLocalStorageList], on && settings.CleanOfflineData },
+    struct { NSString *name; NSArray *(^list)(void); BOOL enabled; } defs[] = {
+        { @"CleanForms",        ^NSArray*{ return [SweeperManager getFormsList]; },        on && settings.CleanForms },
+        { @"CleanLocation",     ^NSArray*{ return [SweeperManager getLocationList]; },     on && settings.CleanLocation },
+        { @"CleanPreview",      ^NSArray*{ return [SweeperManager getPreviewList]; },      on && settings.CleanPreview },
+        { @"CleanTopSites",     ^NSArray*{ return [SweeperManager getTopSitesList]; },     on && settings.CleanTopSites },
+        { @"CleanCache",        ^NSArray*{ return [SweeperManager getCacheList]; },        on && settings.CleanCache },
+        { @"CleanWebPageIcons", ^NSArray*{ return [SweeperManager getWebPageIconsList]; }, on && settings.CleanWebPageIcons },
+        { @"CleanHistory",      ^NSArray*{ return [SweeperManager getHistoryList]; },      on && settings.CleanHistory },
+        { @"CleanDownloads",    ^NSArray*{ return [SweeperManager getDownloadsList]; },    on && settings.CleanDownloads },
+        { @"CleanCookies",      ^NSArray*{ return [SweeperManager getCookiesList]; },      on && settings.CleanCookies },
+        { @"CleanFlashCookies", ^NSArray*{ return [SweeperManager getFlashCookiesList]; }, on && settings.CleanCookies },
+        { @"CleanOfflineData",  ^NSArray*{ return [SweeperManager getOfflineDataList]; },  on && settings.CleanOfflineData },
+        { @"CleanLocalStorage", ^NSArray*{ return [SweeperManager getLocalStorageList]; }, on && settings.CleanOfflineData },
     };
     
     NSMutableArray *result = [NSMutableArray array];
     for (size_t i = 0; i < sizeof(defs) / sizeof(defs[0]); i++) {
         BFDataCategory *cat = [[[BFDataCategory alloc] init] autorelease];
-        cat.name    = defs[i].name;
-        // de-duplicate (e.g. HistoryIndex.sk is listed twice) so nothing is counted twice
-        cat.paths   = [[NSOrderedSet orderedSetWithArray:[Helper appendAbsolutePath:defs[i].list]] array];
-        cat.enabled = defs[i].enabled;
+        cat.name      = defs[i].name;
+        cat.pathBlock = defs[i].list;      // copied by the property
+        cat.enabled   = defs[i].enabled;
         [result addObject:cat];
     }
     return result;
@@ -767,7 +991,7 @@ static NSFileManager *fileManager = nil;
     [Helper detectDataCountAndSizeAsync:settings useCache:useCache completion:^(NSUInteger cA, unsigned long long sA, NSUInteger cT, unsigned long long sT, NSDictionary *byCategory)
     {
         [TfDataCountSize setStringValue:[NSString stringWithFormat:NSLocalizedString(@"data_count_size", nil),
-            (int) cA, (int) cT, [Helper formatBytes:sA], [Helper formatBytes:sT]
+            [Helper formatCount:cA], [Helper formatCount:cT], [Helper formatBytes:sA], [Helper formatBytes:sT]
         ]];
         if (perCategory) perCategory(byCategory);
     }];

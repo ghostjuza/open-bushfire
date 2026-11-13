@@ -10,8 +10,9 @@ Bushfire is a free, open-source (GPLv3) macOS app that automatically deletes you
 * Immediate cleanup from the macOS menu bar, without quitting Safari
 * Choose the data categories individually, pause Bushfire at any time
 * Statistics: number and size of deleted items
-* Optional secure overwriting
+* Optional overwriting of files (HDD only)
 * German and English, free including updates
+* App is signed & notarized
 
 Safari can remove history after a set period (at the earliest after one day), but not when you quit. Bushfire closes this gap.
 
