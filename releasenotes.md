@@ -1,6 +1,6 @@
 # Release Notes
 
-### Build 2026.109 (2026-11-13)
+### Build 2026.131 (2026-11-13)
 `new` Added a 'Panel animation' option in the settings to switch the panel's opening and collapsing animation off.
 
 ![Screenshot with new panel animation checkbox](img/panel-animation-chackbox.png)  
