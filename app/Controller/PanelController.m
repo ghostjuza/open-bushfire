@@ -1,6 +1,7 @@
 #import <Sparkle/Sparkle.h>
 
 #import "PanelController.h"
+#import <QuartzCore/QuartzCore.h>
 #import "BackgroundView.h"
 #import "StatusItemView.h"
 #import "MenubarController.h"
@@ -20,7 +21,7 @@
 #define OPEN_DURATION 0  //.15
 #define CLOSE_DURATION 0.3 //.1
 #define POPUP_HEIGHT 78
-#define POPUP_HEIGHT_SMALL 200
+#define POPUP_HEIGHT_SMALL 226
 #define POPUP_HEIGHT_CLOSED 76
 #define PANEL_WIDTH 325
 #define ROW_HEIGHT 32
@@ -112,12 +113,27 @@ enum {
 @property (nonatomic, assign) BOOL empty;    // 0 / 0 B -> grau
 @property (nonatomic, assign) BOOL dimmed;   // Kategorie ausgeschaltet
 @property (nonatomic, assign) CGFloat rightEdge;
+- (void)setText:(NSString *)text empty:(BOOL)empty dimmed:(BOOL)dimmed;
+- (void)setText:(NSString *)text empty:(BOOL)empty dimmed:(BOOL)dimmed animated:(BOOL)animated;
 @end
 
 @implementation BFBadgeView
+{
+    NSTimer *_growTimer;
+    NSDate  *_growStart;
+    CGFloat  _growFromWidth;
+    CGFloat  _growToWidth;
+    CGFloat  _growFade;    // 0..1 Deckkraft waehrend des Aufziehens
+}
 @synthesize text = _text, empty = _empty, dimmed = _dimmed, rightEdge = _rightEdge;
 
-- (void)dealloc { [_text release]; [super dealloc]; }
+- (void)dealloc
+{
+    [_growTimer invalidate];
+    [_growStart release];
+    [_text release];
+    [super dealloc];
+}
 - (NSView *)hitTest:(NSPoint)point { return nil; }
 
 + (NSDictionary *)textAttributes
@@ -132,6 +148,9 @@ enum {
     self.text = text;
     _empty    = empty;
     _dimmed   = dimmed;
+    [_growTimer invalidate];
+    _growTimer = nil;
+    _growFade = 1.0;
     
     CGFloat width = ceil([text sizeWithAttributes:[BFBadgeView textAttributes]].width) + 12.0;
     NSRect frame  = [self frame];
@@ -141,11 +160,57 @@ enum {
     [self setNeedsDisplay:YES];
 }
 
+// Setzt den neuen Text und zieht die Pille dabei weich von der alten auf die neue Breite auf
+// (rechte Kante bleibt fest, Deckkraft blendet mit ein).
+- (void)setText:(NSString *)text empty:(BOOL)empty dimmed:(BOOL)dimmed animated:(BOOL)animated
+{
+    CGFloat oldWidth = NSWidth([self frame]);
+    [self setText:text empty:empty dimmed:dimmed];
+    CGFloat newWidth = NSWidth([self frame]);
+    
+    [_growTimer invalidate];
+    _growTimer = nil;
+    _growFade = 1.0;
+    
+    if (!animated || [text length] == 0 || [self window] == nil || ![[self window] isVisible]) return;
+    
+    _growFromWidth = (oldWidth < 6.0 ? 6.0 : oldWidth);
+    _growToWidth   = newWidth;
+    _growFade      = 0.0;
+    [_growStart release];
+    _growStart = [[NSDate date] retain];
+    _growTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0 / 60.0) target:self selector:@selector(growTick:) userInfo:nil repeats:YES];
+    [[NSRunLoop currentRunLoop] addTimer:_growTimer forMode:NSRunLoopCommonModes];
+    [self growTick:nil];
+}
+
+- (void)growTick:(NSTimer *)timer
+{
+    static const NSTimeInterval kDuration = 0.30;
+    CGFloat u = (CGFloat)(-[_growStart timeIntervalSinceNow] / kDuration);
+    if (u >= 1.0) u = 1.0;
+    CGFloat e = 1.0 - (1.0 - u) * (1.0 - u) * (1.0 - u);   // ease-out
+    
+    CGFloat width = _growFromWidth + (_growToWidth - _growFromWidth) * e;
+    NSRect frame = [self frame];
+    frame.size.width = width;
+    frame.origin.x   = self.rightEdge - width;
+    [self setFrame:frame];
+    _growFade = e;
+    [self setNeedsDisplay:YES];
+    
+    if (u >= 1.0) {
+        [_growTimer invalidate];
+        _growTimer = nil;
+        _growFade = 1.0;
+    }
+}
+
 - (void)drawRect:(NSRect)dirtyRect
 {
     if ([self.text length] == 0) return;
     
-    CGFloat alpha = (self.dimmed ? 0.45 : 1.0);
+    CGFloat alpha = (self.dimmed ? 0.45 : 1.0) * _growFade;
     NSRect r = [self bounds];
     NSBezierPath *pill = [NSBezierPath bezierPathWithRoundedRect:r xRadius:NSHeight(r) / 2.0 yRadius:NSHeight(r) / 2.0];
     
@@ -158,13 +223,17 @@ enum {
         fill = [NSColor colorWithCalibratedRed:0.80 green:0.33 blue:0.10 alpha:alpha];
         fg   = [NSColor colorWithCalibratedWhite:1.0 alpha:alpha];
     }
+    [NSGraphicsContext saveGraphicsState];
+    [pill addClip];   // Text darf beim Aufziehen nie ueber die Pille hinausragen
     [fill setFill];
     [pill fill];
     
     NSMutableDictionary *attrs = [NSMutableDictionary dictionaryWithDictionary:[BFBadgeView textAttributes]];
     [attrs setObject:fg forKey:NSForegroundColorAttributeName];
     NSSize ts = [self.text sizeWithAttributes:attrs];
-    [self.text drawAtPoint:NSMakePoint(floor((NSWidth(r) - ts.width) / 2.0), floor((NSHeight(r) - ts.height) / 2.0)) withAttributes:attrs];
+    // Rechtsbuendig (6 pt Rand): im Endzustand identisch zu mittig, beim Aufziehen wird der Text von rechts "enthuellt".
+    [self.text drawAtPoint:NSMakePoint(floor(NSWidth(r) - 6.0 - ts.width), floor((NSHeight(r) - ts.height) / 2.0)) withAttributes:attrs];
+    [NSGraphicsContext restoreGraphicsState];
 }
 
 @end
@@ -176,6 +245,36 @@ enum {
 @implementation BFFlippedView
 - (BOOL)isFlipped { return YES; }
 @end
+
+
+// ---------------------------------------------------------------------------
+// Oeffnen mit "Pop": Feder-Animation (leichtes Ueberschwingen) ueber Layer-Transform.
+// Es wird nur eine Animation hinzugefuegt, der Layer selbst bleibt unveraendert (Identitaet).
+// Nach dem Ende ist also immer der normale Zustand sichtbar.
+// ---------------------------------------------------------------------------
+
+// Gedaempfte Schwingung, u: 0..1 -> 0..1 (mit Ueberschwingen)
+static CGFloat bfSpringProgress(CGFloat u)
+{
+    if (u >= 1.0) {
+        return 1.0;
+    }
+    return 1.0 - exp(-5.0 * u) * cos(2.0 * M_PI * 1.2 * u);
+}
+
+// Hilfsfenster fuer den Pop beim Oeffnen: zeigt nur ein Standbild (Snapshot) des fertigen Panels und
+// skaliert es per Feder-Animation. Das echte Panel (mit allen Views) wird dabei nicht verformt,
+// bleibt unsichtbar und wird erst am Ende der Animation eingeblendet.
+static NSWindow *bfPopWindow = nil;
+
+static void bfClosePopWindow(void)
+{
+    if (bfPopWindow != nil) {
+        [bfPopWindow orderOut:nil];
+        [bfPopWindow release];
+        bfPopWindow = nil;
+    }
+}
 
 
 @interface PanelController()
@@ -191,6 +290,7 @@ enum {
 @property (nonatomic, retain) NSButton *a_chkStartup;
 @property (nonatomic, retain) NSButton *a_btnCleanSecureActive;
 @property (nonatomic, retain) NSButton *a_btnLogEnabled;
+@property (nonatomic, retain) NSButton *a_btnPanelAnimation;
 @property (nonatomic, retain) NSTextField *TfDataCountSize;
 @property (nonatomic, retain) NSMutableDictionary *a_badges;   // tag -> BFBadgeView
 
@@ -210,11 +310,14 @@ enum {
 - (NSRect)statusRectForWindow:(NSWindow *)window;
 
 - (IBAction)actionCleanActive:(id)sender;
+- (void)animatePanelResizeForCleanActive;
+- (BOOL)popOpenPanel:(NSWindow *)panel fadeId:(NSUInteger)fadeId;
 - (IBAction)actionCleanSecureActive:(id)sender;
 - (IBAction)actionSettingsQuit:(id)sender;
 - (IBAction)actionSettingsAbout:(id)sender;
 - (IBAction)actionToggleLoginItems:(id)sender;
 - (IBAction)actionSettings:(id)sender;
+- (IBAction)actionPanelAnimation:(id)sender;
 - (IBAction)actionBurnNow:(id)sender;
 
 @end
@@ -232,6 +335,7 @@ enum {
 @synthesize a_btnCleanActive        = _a_btnCleanActive;
 @synthesize a_btnCleanSecureActive  = _a_btnCleanSecureActive;
 @synthesize a_btnLogEnabled         = _a_btnLogEnabled;
+@synthesize a_btnPanelAnimation     = _a_btnPanelAnimation;
 @synthesize a_btnSettingsAbout      = _a_btnSettingsAbout;
 @synthesize a_btnSettingsQuit       = _a_btnSettingsQuit;
 @synthesize a_chkStartup            = _a_chkStartup;
@@ -246,6 +350,25 @@ enum {
 // Animationen sind bewusst abgeschaltet: animator mit Dauer 0 laesst Alpha/Frame
 // unter macOS 11 in Zwischenzustaenden haengen (Panel bleibt halb transparent).
 static bool ANIMATE = false;
+
+// Weiches Einblenden beim Oeffnen: nur Alpha (kein Frame), kurze Dauer, mit Absicherung.
+// Der Zaehler verhindert, dass ein veralteter Einblend-Durchlauf einen neuen oder
+// bereits geschlossenen Zustand ueberschreibt.
+#define PANEL_FADE_IN_DURATION PANEL_FADE_DURATION
+static NSUInteger bfPanelFadeId = 0;
+
+// Zoom beim Oeffnen: das Panel waechst von 90 % auf 100 %, oben mittig (unter dem Menueleisten-Icon) verankert.
+// Es wird nur eine Layer-Animation hinzugefuegt; der Layer selbst bleibt unveraendert (Identitaet),
+// dadurch kann nach dem Ende nichts verkleinert haengen bleiben.
+#define PANEL_POP_START_SCALE   0.55
+#define PANEL_POP_DURATION      0.35
+#define PANEL_FADE_DURATION     0.15
+
+// Weiches Ein-/Ausklappen der Liste beim Klick auf die Checkbox "Safari": die Fensterhoehe wird per Timer
+// in kleinen Schritten geaendert (oben fest). Am Ende setzt restorePanel: immer den exakten Endzustand.
+// Der Zaehler macht veraltete Durchlaeufe (schnelle Klicks, Schliessen) wirkungslos.
+#define PANEL_RESIZE_DURATION   0.22
+static NSUInteger bfPanelResizeId = 0;
 
 
 #pragma mark -
@@ -293,6 +416,7 @@ static bool ANIMATE = false;
     [_a_btnCleanActive release];
     [_a_btnCleanSecureActive release];
     [_a_btnLogEnabled release];
+    [_a_btnPanelAnimation release];
     [_a_btnSettingsAbout release];
     [_a_btnSettingsQuit release];
     [_a_chkStartup release];
@@ -381,7 +505,10 @@ static bool ANIMATE = false;
             BFBadgeView *badge = [self.a_badges objectForKey:tag];
             [badge setText:[self badgeTextForCount:count size:size]
                      empty:(count == 0 && size == 0)
-                    dimmed:![self isSettingActiveForRow:[tag integerValue]]];
+                    dimmed:![self isSettingActiveForRow:[tag integerValue]]
+                  animated:(self.a_settings.PanelAnimationEnabled
+                            && [badge.text isEqualToString:@"\u2026"]   // nur beim ersten Eintreffen der Werte, nicht beim (De-)Aktivieren
+                            && ![[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion])];
         }
     }];
 }
@@ -570,10 +697,14 @@ static bool ANIMATE = false;
     [self.a_btnLogEnabled setState:self.a_settings.LogEnabled];
     [settingsView addSubview:self.a_btnLogEnabled];
     
-    self.a_btnUpdateCheck = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 103, 175, 20) title:NSLocalizedString(@"update", nil) action:@selector(actionUpdateCheck:)];
+    self.a_btnPanelAnimation = [self checkboxWithFrame:NSMakeRect(12, 95, PANEL_WIDTH - 24, 18) title:NSLocalizedString(@"panel_animation", nil) bold:NO action:@selector(actionPanelAnimation:)];
+    [self.a_btnPanelAnimation setState:self.a_settings.PanelAnimationEnabled];
+    [settingsView addSubview:self.a_btnPanelAnimation];
+    
+    self.a_btnUpdateCheck = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 129, 175, 20) title:NSLocalizedString(@"update", nil) action:@selector(actionUpdateCheck:)];
     [settingsView addSubview:self.a_btnUpdateCheck];
     
-    self.a_btnSettingsQuit = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 131, 175, 20) title:NSLocalizedString(@"quit", nil) action:@selector(actionSettingsQuit:)];
+    self.a_btnSettingsQuit = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 157, 175, 20) title:NSLocalizedString(@"quit", nil) action:@selector(actionSettingsQuit:)];
     [settingsView addSubview:self.a_btnSettingsQuit];
     
     self.a_btnSettingsAbout = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), POPUP_HEIGHT_SMALL - 26, 175, 20) title:NSLocalizedString(@"about", nil) action:@selector(actionSettingsAbout:)];
@@ -784,15 +915,33 @@ static bool ANIMATE = false;
     [panel setFrame:panelRect display:YES];
     [panel makeKeyAndOrderFront:nil];
     
-    [self refreshDataCountUseCache:NO];
+    BOOL animateOpen = (self.a_settings.PanelAnimationEnabled
+                        && ![[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion]);
     
     // No animation
     if (!ANIMATE) {
         [self locateFrameDataCountSize:panelRect.size];
         [panel setFrame:panelRect display:YES];
-        [panel setAlphaValue:1];
+        
+        NSUInteger fadeId = ++bfPanelFadeId;
+        bfClosePopWindow();   // Rest eines vorherigen Pops entfernen
+        
+        BOOL popped = NO;
+        if (animateOpen) {
+            // Badges zeigen "...", bis die Zaehlung fertig ist (Standbild enthaelt diesen Zustand)
+            for (BFBadgeView *badge in [self.a_badges allValues]) {
+                [badge setText:@"\u2026" empty:YES dimmed:NO];
+            }
+            popped = [self popOpenPanel:panel fadeId:fadeId];
+        }
+        
+        if (!popped) {
+            [panel setAlphaValue:1];
+            [self refreshDataCountUseCache:NO];
+        }
     }
     else {
+        [self refreshDataCountUseCache:NO];
         NSTimeInterval openDuration = OPEN_DURATION;
         
         if ([[NSApp currentEvent] type] == NSEventTypeLeftMouseDown) {
@@ -809,6 +958,99 @@ static bool ANIMATE = false;
         
         [NSAnimationContext endGrouping];
     }
+}
+
+
+/**
+ Pop beim Oeffnen: ein Standbild des fertigen Panels waechst in einem Hilfsfenster mit leichtem
+ Ueberschwingen aus der Pfeilspitze. Am Ende wird das echte Panel eingeblendet und die Zaehlung gestartet.
+ @returns NO, wenn kein Standbild erzeugt werden konnte (dann oeffnet das Panel ohne Animation)
+ */
+- (BOOL)popOpenPanel:(NSWindow *)panel fadeId:(NSUInteger)fadeId
+{
+    NSView *content = [panel contentView];
+    NSRect bounds   = [content bounds];
+    if (content == nil || NSIsEmptyRect(bounds)) {
+        return NO;
+    }
+    
+    NSBitmapImageRep *rep = [content bitmapImageRepForCachingDisplayInRect:bounds];
+    if (rep == nil) {
+        return NO;
+    }
+    [content cacheDisplayInRect:bounds toBitmapImageRep:rep];
+    CGImageRef image = [rep CGImage];
+    if (image == NULL) {
+        return NO;
+    }
+    
+    NSWindow *pop = [[NSWindow alloc] initWithContentRect:[panel frame]
+                                                styleMask:NSWindowStyleMaskBorderless
+                                                  backing:NSBackingStoreBuffered
+                                                    defer:NO];
+    [pop setReleasedWhenClosed:NO];
+    [pop setAnimationBehavior:NSWindowAnimationBehaviorNone];
+    [pop setOpaque:NO];
+    [pop setBackgroundColor:[NSColor clearColor]];
+    [pop setHasShadow:NO];
+    [pop setIgnoresMouseEvents:YES];
+    [pop setLevel:[panel level] + 1];
+    [pop setCollectionBehavior:[panel collectionBehavior]];
+    
+    NSView *view = [[[NSView alloc] initWithFrame:bounds] autorelease];
+    [view setWantsLayer:YES];
+    [pop setContentView:view];
+    
+    CGFloat width  = NSWidth(bounds);
+    CGFloat height = NSHeight(bounds);
+    CGFloat tipX   = MAX(0.0, MIN(width, (CGFloat)self.a_backgroundView.arrowX));
+    
+    // Verankerung an der Pfeilspitze (oben, Hilfsfenster ist nicht gespiegelt: y = Hoehe ist oben)
+    CALayer *layer     = [CALayer layer];
+    layer.bounds       = CGRectMake(0, 0, width, height);
+    layer.anchorPoint  = CGPointMake(tipX / width, 1.0);
+    layer.position     = CGPointMake(tipX, height);
+    layer.contents     = (id)image;
+    layer.contentsScale = [panel backingScaleFactor];
+    [[view layer] addSublayer:layer];
+    
+    NSMutableArray *values = [NSMutableArray array];
+    const int steps = 40;
+    for (int i = 0; i <= steps; i++) {
+        CGFloat scale = PANEL_POP_START_SCALE + (1.0 - PANEL_POP_START_SCALE) * bfSpringProgress((CGFloat)i / (CGFloat)steps);
+        [values addObject:[NSNumber numberWithDouble:scale]];
+    }
+    CAKeyframeAnimation *scaleAnim = [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
+    scaleAnim.values          = values;
+    scaleAnim.duration        = PANEL_POP_DURATION;
+    scaleAnim.calculationMode = kCAAnimationLinear;
+    [layer addAnimation:scaleAnim forKey:@"bfPopScale"];
+    
+    CABasicAnimation *fadeAnim = [CABasicAnimation animationWithKeyPath:@"opacity"];
+    fadeAnim.fromValue = [NSNumber numberWithFloat:0.0f];
+    fadeAnim.toValue   = [NSNumber numberWithFloat:1.0f];
+    fadeAnim.duration  = PANEL_FADE_DURATION;
+    [layer addAnimation:fadeAnim forKey:@"bfPopFade"];
+    
+    bfPopWindow = pop;   // Besitz bleibt bei der statischen Variable
+    [pop orderFront:nil];
+    
+    // Ende: echtes Panel einblenden (identisches Bild), Hilfsfenster danach entfernen, Zaehlung starten
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((PANEL_POP_DURATION + 0.03) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (fadeId != bfPanelFadeId) {
+            return;   // inzwischen geschlossen oder neu geoeffnet
+        }
+        [panel setAlphaValue:1];
+        [self refreshDataCountUseCache:NO];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (bfPopWindow == pop) {
+                bfClosePopWindow();
+            }
+        });
+    });
+    
+    return YES;
 }
 
 
@@ -876,6 +1118,9 @@ static bool ANIMATE = false;
 {
     // No animation
     if (!ANIMATE) {
+        bfPanelFadeId++;   // laufendes Einblenden ungueltig machen
+        bfPanelResizeId++; // laufendes Ein-/Ausklappen ungueltig machen
+        bfClosePopWindow();
         [[self window] setAlphaValue:0.0];
         [self restorePanel:0.0];
         [self close];
@@ -1148,17 +1393,58 @@ static bool ANIMATE = false;
     [self.a_settings saveSettings];
     
     [self.a_btnCleanActive setState:self.a_settings.CleanActive];
-    [self.a_containerView setHidden:YES];
     
-    //if (!isMyQueue()) {
-    //    self.myQueue = dispatch_queue_create("QueDataCountAndSize", DISPATCH_QUEUE_SERIAL);
-    //}
-    //dispatch_queue_set_specific(self.myQueue, @selector(myQueue), @selector(myQueue), NULL);
-    
-    // dispatch_get_current_queue | dispatch_get_main_queue
-    //dispatch_async(self.myQueue, ^{
     [self refreshDataCountUseCache:YES];
-    [self restorePanel:1.0];
+    [self animatePanelResizeForCleanActive];
+}
+
+
+/**
+ klappt die Liste weich ein oder aus (Fensterhoehe animiert, Oberkante bleibt stehen)
+ */
+- (void)animatePanelResizeForCleanActive
+{
+    NSWindow *panel   = [self window];
+    BOOL active       = self.a_settings.CleanActive;
+    CGFloat targetH   = (active ? POPUP_HEIGHT + (ROW_HEIGHT * self.a_tableRows.count) : POPUP_HEIGHT_CLOSED);
+    NSRect startFrame = [panel frame];
+    CGFloat startH    = NSHeight(startFrame);
+    
+    if (!self.a_settings.PanelAnimationEnabled || ![panel isVisible] || fabs(targetH - startH) < 1.0 || [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion]) {
+        bfPanelResizeId++;
+        [self restorePanel:1.0];
+        return;
+    }
+    
+    // Beim Aufklappen sofort sichtbar machen, beim Zuklappen erst am Ende verstecken (macht restorePanel:)
+    [self.a_btnBurnNow setHidden:!active];
+    if (active) {
+        [self.a_containerView setHidden:NO];
+    }
+    
+    NSUInteger animId     = ++bfPanelResizeId;
+    CFTimeInterval begin  = CACurrentMediaTime();
+    
+    NSTimer *timer = [NSTimer timerWithTimeInterval:(1.0 / 60.0) repeats:YES block:^(NSTimer *t) {
+        if (animId != bfPanelResizeId) {
+            [t invalidate];
+            return;
+        }
+        
+        CGFloat progress = (CGFloat)((CACurrentMediaTime() - begin) / PANEL_RESIZE_DURATION);
+        if (progress >= 1.0) {
+            [t invalidate];
+            [self restorePanel:1.0];   // exakter Endzustand
+            return;
+        }
+        
+        CGFloat eased = 1.0 - pow(1.0 - progress, 3.0);   // Ease-Out
+        NSRect frame  = startFrame;
+        frame.size.height = startH + (targetH - startH) * eased;
+        frame.origin.y    = NSMaxY(startFrame) - NSHeight(frame);
+        [panel setFrame:frame display:YES];
+    }];
+    [[NSRunLoop mainRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
 }
 
 
@@ -1185,6 +1471,14 @@ static bool ANIMATE = false;
  toggle global settings sweep
  @param sender of nsbutton
  */
+- (IBAction)actionPanelAnimation:(id)sender
+{
+    self.a_settings.PanelAnimationEnabled = !self.a_settings.PanelAnimationEnabled;
+    [self.a_settings saveSettings];
+    [self.a_btnPanelAnimation setState:self.a_settings.PanelAnimationEnabled];
+}
+
+
 - (IBAction)actionLogEnable:(id)sender
 {
     self.a_settings.LogEnabled = !self.a_settings.LogEnabled;

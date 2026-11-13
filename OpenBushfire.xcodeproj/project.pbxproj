@@ -351,8 +351,14 @@
 		32469510158A67E700D18DE0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
-				326A1A15158E661400F3ABDA /* Manager */,
-				326A1A14158E660C00F3ABDA /* Objects */,
+				32AC31C4158BBEBB002C81D4 /* LoginItemManager.h */,
+				32AC31C5158BBEBB002C81D4 /* LoginItemManager.m */,
+				326208D5165B78A200DAC62D /* Reachability.h */,
+				326208D6165B78A200DAC62D /* Reachability.m */,
+				32469511158A67E700D18DE0 /* SweeperManager.h */,
+				32469512158A67E700D18DE0 /* SweeperManager.m */,
+				2CDE8E8A158B9AC10028DD2B /* Settings.h */,
+				2CDE8E8B158B9AC10028DD2B /* Settings.m */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -421,28 +427,6 @@
 				32469530158A6A6C00D18DE0 /* Localizable.strings */,
 			);
 			path = Localize;
-			sourceTree = "<group>";
-		};
-		326A1A14158E660C00F3ABDA /* Objects */ = {
-			isa = PBXGroup;
-			children = (
-				2CDE8E8A158B9AC10028DD2B /* Settings.h */,
-				2CDE8E8B158B9AC10028DD2B /* Settings.m */,
-			);
-			name = Objects;
-			sourceTree = "<group>";
-		};
-		326A1A15158E661400F3ABDA /* Manager */ = {
-			isa = PBXGroup;
-			children = (
-				32AC31C4158BBEBB002C81D4 /* LoginItemManager.h */,
-				32AC31C5158BBEBB002C81D4 /* LoginItemManager.m */,
-				326208D5165B78A200DAC62D /* Reachability.h */,
-				326208D6165B78A200DAC62D /* Reachability.m */,
-				32469511158A67E700D18DE0 /* SweeperManager.h */,
-				32469512158A67E700D18DE0 /* SweeperManager.m */,
-			);
-			name = Manager;
 			sourceTree = "<group>";
 		};
 		326A1A16158E662F00F3ABDA /* Cell */ = {

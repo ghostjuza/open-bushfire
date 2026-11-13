@@ -26,6 +26,7 @@
 @synthesize SipEnabledConfirmed      = _SipEnabledConfirmed;
 @synthesize SipUnknownConfirmed      = _SipUnknownConfirmed;
 @synthesize LogEnabled               = _LogEnabled;
+@synthesize PanelAnimationEnabled    = _PanelAnimationEnabled;
 
 + (id)settingsFromDefaults
 {
@@ -65,7 +66,8 @@
         settings.SipEnabledConfirmed = NO;
         settings.SipUnknownConfirmed = NO;
         
-        settings.LogEnabled          = YES;
+        settings.LogEnabled          = NO;
+        settings.PanelAnimationEnabled = YES;
 
         // Currently unused !!!
         //
@@ -115,6 +117,7 @@
     [encoder encodeBool:self.SipUnknownConfirmed forKey:@"confirmedSipUnknown"];
     
     [encoder encodeBool:self.LogEnabled forKey:@"logEnabled"];
+    [encoder encodeBool:self.PanelAnimationEnabled forKey:@"panelAnimationEnabled"];
 
 //    [encoder encodeBool:self.CleanReadingList forKey:@"cleanReadingList"];
 //    [encoder encodeBool:self.CleanRemoteNotifications forKey:@"cleanRemoteNotifications"];
@@ -149,6 +152,9 @@
         self.SipUnknownConfirmed  = [decoder decodeBoolForKey:@"confirmedSipUnknown"];
         
         self.LogEnabled           = [decoder decodeBoolForKey:@"logEnabled"];
+        
+        // Neue Option: bei bereits gespeicherten Einstellungen ohne diesen Schluessel standardmaessig an
+        self.PanelAnimationEnabled = ([decoder containsValueForKey:@"panelAnimationEnabled"] ? [decoder decodeBoolForKey:@"panelAnimationEnabled"] : YES);
 
 //        self.CleanReadingList         = [decoder decodeBoolForKey:@"cleanReadingList"];
 //        self.CleanRemoteNotifications = [decoder decodeBoolForKey:@"cleanRemoteNotifications"];
