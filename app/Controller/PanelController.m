@@ -155,7 +155,7 @@ enum {
         fg   = [NSColor colorWithCalibratedWhite:0.68 alpha:alpha];
     }
     else {
-        fill = [NSColor colorWithCalibratedRed:0.91 green:0.42 blue:0.18 alpha:alpha];
+        fill = [NSColor colorWithCalibratedRed:0.80 green:0.33 blue:0.10 alpha:alpha];
         fg   = [NSColor colorWithCalibratedWhite:1.0 alpha:alpha];
     }
     [fill setFill];
@@ -521,12 +521,15 @@ static bool ANIMATE = false;
         [settingButton setState:[self isSettingActiveForRow:tag]];
         [container addSubview:settingButton];
         
-        // Badge (rechtsbuendig, ueber der Checkbox, klickdurchlaessig)
+        // Badge (rechtsbuendig, ueber der Checkbox, klickdurchlaessig).
+        // Nicht fuer Zombie-Cookies: das ist ein Dienst, dort gibt es nichts zu zaehlen.
         if (!self.a_badges) self.a_badges = [NSMutableDictionary dictionary];
-        BFBadgeView *badge = [[[BFBadgeView alloc] initWithFrame:NSMakeRect(PANEL_WIDTH - 12, rowY + 7.5, 0, 17)] autorelease];
-        badge.rightEdge = PANEL_WIDTH - 12;
-        [container addSubview:badge];
-        [self.a_badges setObject:badge forKey:[NSNumber numberWithInteger:tag]];
+        if (tag != SettingsModeZombieCookies) {
+            BFBadgeView *badge = [[[BFBadgeView alloc] initWithFrame:NSMakeRect(PANEL_WIDTH - 12, rowY + 7.5, 0, 17)] autorelease];
+            badge.rightEdge = PANEL_WIDTH - 12;
+            [container addSubview:badge];
+            [self.a_badges setObject:badge forKey:[NSNumber numberWithInteger:tag]];
+        }
         
         // Trennlinie unter der Zeile (dunkel + hell), nicht nach der letzten Zeile
         if (current + 1 < [self.a_tableRows count]) {
@@ -546,16 +549,31 @@ static bool ANIMATE = false;
     
     self.a_btnCleanSecureActive = [self checkboxWithFrame:NSMakeRect(12, 53, 200, 18) title:NSLocalizedString(@"clean_secure_active", nil) bold:NO action:@selector(actionCleanSecureActive:)];
     [self.a_btnCleanSecureActive setState:self.a_settings.CleanSecureActive];
+    [self.a_btnCleanSecureActive setFrameSize:NSMakeSize(PANEL_WIDTH - 80, 18)];   // Platz fuer den laengeren Titel, endet vor "Log"
+    [self.a_btnCleanSecureActive setToolTip:NSLocalizedString(@"clean_secure_tooltip", nil)];
     [settingsView addSubview:self.a_btnCleanSecureActive];
     
-    self.a_btnLogEnabled = [self checkboxWithFrame:NSMakeRect(PANEL_WIDTH - 80, 53, 70, 18) title:NSLocalizedString(@"log_enabled", nil) bold:NO action:@selector(actionLogEnable:)];
+    // Hinweis unter der Checkbox (sichtbar, kein Tooltip noetig)
+    NSTextField *secureHint = [[[NSTextField alloc] initWithFrame:NSMakeRect(12 + 22, 72, PANEL_WIDTH - 24 - 22, 14)] autorelease];
+    [secureHint setBezeled:NO];
+    [secureHint setBordered:NO];
+    [secureHint setDrawsBackground:NO];
+    [secureHint setEditable:NO];
+    [secureHint setSelectable:NO];
+    [secureHint setAlignment:NSTextAlignmentLeft];
+    [secureHint setFont:[NSFont systemFontOfSize:10]];
+    [secureHint setTextColor:[NSColor colorWithCalibratedWhite:1.0 alpha:0.55]];
+    [secureHint setStringValue:NSLocalizedString(@"clean_secure_hint", nil)];
+    [settingsView addSubview:secureHint];
+    
+    self.a_btnLogEnabled = [self checkboxWithFrame:NSMakeRect(PANEL_WIDTH - 62, 53, 50, 18) title:NSLocalizedString(@"log_enabled", nil) bold:NO action:@selector(actionLogEnable:)];
     [self.a_btnLogEnabled setState:self.a_settings.LogEnabled];
     [settingsView addSubview:self.a_btnLogEnabled];
     
-    self.a_btnUpdateCheck = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 93, 175, 20) title:NSLocalizedString(@"update", nil) action:@selector(actionUpdateCheck:)];
+    self.a_btnUpdateCheck = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 103, 175, 20) title:NSLocalizedString(@"update", nil) action:@selector(actionUpdateCheck:)];
     [settingsView addSubview:self.a_btnUpdateCheck];
     
-    self.a_btnSettingsQuit = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 121, 175, 20) title:NSLocalizedString(@"quit", nil) action:@selector(actionSettingsQuit:)];
+    self.a_btnSettingsQuit = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 131, 175, 20) title:NSLocalizedString(@"quit", nil) action:@selector(actionSettingsQuit:)];
     [settingsView addSubview:self.a_btnSettingsQuit];
     
     self.a_btnSettingsAbout = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), POPUP_HEIGHT_SMALL - 26, 175, 20) title:NSLocalizedString(@"about", nil) action:@selector(actionSettingsAbout:)];

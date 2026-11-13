@@ -86,6 +86,9 @@ static MenubarController *m_staticMenubarController;
 #endif
     
     if (isConnectionAvailable) {
+        // statistics that could not be delivered earlier (offline, server down)
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{ [Helper flushPendingCleanupPushes]; });
+        
         [[[SUUpdater alloc] init] checkForUpdatesInBackground];
         //[[[SPUUpdater alloc] autorelease] checkForUpdatesInBackground];
     }
@@ -325,7 +328,11 @@ static MenubarController *m_staticMenubarController;
  */
 - (void)m_safariTerminated:(NSNotification *)note
 {
-    if ([[[note userInfo] objectForKey:@"NSApplicationName"] isEqualToString:@"Safari"]) {
+    NSDictionary *info = [note userInfo];
+    BOOL isSafari = [[info objectForKey:@"NSApplicationBundleIdentifier"] isEqualToString:@"com.apple.Safari"]
+                 || [[info objectForKey:@"NSApplicationName"] isEqualToString:@"Safari"];
+    
+    if (isSafari) {
         if (!self.a_sweeperManager) {
             _a_sweeperManager = [[SweeperManager alloc] init];
         }

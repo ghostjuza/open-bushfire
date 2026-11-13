@@ -13,7 +13,7 @@
 "quit"                      = "Quit Bushfire";
 "about"                     = "About Bushfire";
 "version"                   = "Build: %@%@";
-"data_count_size"           = "%d / %d Objects (%@ / %@)";
+"data_count_size"           = "%@ / %@ Objects (%@ / %@)";
 "data_count_size_detect"    = "...";
 "start_logon"               = "Launch at Login";
 "clean_active"              = "Safari";
@@ -27,11 +27,13 @@
 "downloads"                 = "Downloads";
 "downloads_mail"            = "Downloads (Mail)";
 "location"                  = "Location Warnings";
-"offline_data"              = "Local Storage (HTML5)";
+"offline_data"              = "Local Storage";
 "reading_list"              = "Reading List";
 "remote_notifications"      = "Notifications";
 "web_page_icons"            = "Webpage Icons";
-"clean_secure_active"       = "Remove Data Secure";
+"clean_secure_active"       = "Overwrite Files (HDD only)";
+"clean_secure_hint"         = "Not reliable on SSDs.";
+"clean_secure_tooltip"      = "Data cannot be reliably overwritten on SSDs (or on APFS). With FileVault the entire disk is encrypted, so remnants of deleted files cannot be read without logging in.";
 "log_enabled"               = "Log";
 "update"                    = "Check for Update";
 "ok"                        = "OK";
