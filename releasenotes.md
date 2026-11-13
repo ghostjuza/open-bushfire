@@ -23,6 +23,8 @@
 `improved` Latest scan wins: When you click quickly, only the most recent scan is shown.  
 `fix` Double counting: One Safari history file was counted twice. Object counts and sizes in the panel and the anonymous cleanup statistics can be slightly lower than before, but they are now accurate.  
 
+![Screenshot with new category badges](img/category-badges.png)  
+
 ---
 
 ### Build 2026.75 (2026-11-11)

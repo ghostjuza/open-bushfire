@@ -1,6 +1,7 @@
 #import <Sparkle/Sparkle.h>
 
 #import "PanelController.h"
+#import <QuartzCore/QuartzCore.h>
 #import "BackgroundView.h"
 #import "StatusItemView.h"
 #import "MenubarController.h"
@@ -178,6 +179,57 @@ enum {
 @end
 
 
+// ---------------------------------------------------------------------------
+// Oeffnen mit "Pop": Feder-Animation (leichtes Ueberschwingen) ueber Layer-Transform.
+// Es wird nur eine Animation hinzugefuegt, der Layer selbst bleibt unveraendert (Identitaet).
+// Nach dem Ende ist also immer der normale Zustand sichtbar.
+// ---------------------------------------------------------------------------
+
+// Gedaempfte Schwingung, u: 0..1 -> 0..1 (mit Ueberschwingen)
+static CGFloat bfSpringProgress(CGFloat u)
+{
+    if (u >= 1.0) {
+        return 1.0;
+    }
+    return 1.0 - exp(-5.0 * u) * cos(2.0 * M_PI * 1.2 * u);
+}
+
+// Skaliert den Layer von startScale auf 1, verankert im Punkt pointInLayer (Layer-Koordinaten)
+static void bfAddPopAnimation(CALayer *layer, CGPoint pointInLayer, CGFloat startScale, CFTimeInterval duration, CFTimeInterval delay, NSString *key)
+{
+    if (layer == nil) {
+        return;
+    }
+    
+    CGSize  size   = layer.bounds.size;
+    CGPoint anchor = CGPointMake(layer.anchorPoint.x * size.width, layer.anchorPoint.y * size.height);
+    
+    NSMutableArray *values = [NSMutableArray array];
+    const int steps = 40;
+    for (int i = 0; i <= steps; i++) {
+        CGFloat scale = startScale + (1.0 - startScale) * bfSpringProgress((CGFloat)i / (CGFloat)steps);
+        CGFloat tx    = (1.0 - scale) * (pointInLayer.x - anchor.x);
+        CGFloat ty    = (1.0 - scale) * (pointInLayer.y - anchor.y);
+        
+        CATransform3D t = CATransform3DMakeTranslation(tx, ty, 0);
+        t = CATransform3DScale(t, scale, scale, 1.0);
+        [values addObject:[NSValue valueWithCATransform3D:t]];
+    }
+    
+    CAKeyframeAnimation *anim = [CAKeyframeAnimation animationWithKeyPath:@"transform"];
+    anim.values          = values;
+    anim.duration        = duration;
+    anim.calculationMode = kCAAnimationLinear;
+    
+    if (delay > 0) {
+        anim.beginTime = [layer convertTime:CACurrentMediaTime() fromLayer:nil] + delay;
+        anim.fillMode  = kCAFillModeBackwards;   // bis zum Start im Startzustand bleiben
+    }
+    
+    [layer addAnimation:anim forKey:key];
+}
+
+
 @interface PanelController()
 
 @property (nonatomic, assign) BackgroundView *a_backgroundView;
@@ -210,6 +262,7 @@ enum {
 - (NSRect)statusRectForWindow:(NSWindow *)window;
 
 - (IBAction)actionCleanActive:(id)sender;
+- (void)animatePanelResizeForCleanActive;
 - (IBAction)actionCleanSecureActive:(id)sender;
 - (IBAction)actionSettingsQuit:(id)sender;
 - (IBAction)actionSettingsAbout:(id)sender;
@@ -246,6 +299,25 @@ enum {
 // Animationen sind bewusst abgeschaltet: animator mit Dauer 0 laesst Alpha/Frame
 // unter macOS 11 in Zwischenzustaenden haengen (Panel bleibt halb transparent).
 static bool ANIMATE = false;
+
+// Weiches Einblenden beim Oeffnen: nur Alpha (kein Frame), kurze Dauer, mit Absicherung.
+// Der Zaehler verhindert, dass ein veralteter Einblend-Durchlauf einen neuen oder
+// bereits geschlossenen Zustand ueberschreibt.
+#define PANEL_FADE_IN_DURATION PANEL_FADE_DURATION
+static NSUInteger bfPanelFadeId = 0;
+
+// Zoom beim Oeffnen: das Panel waechst von 90 % auf 100 %, oben mittig (unter dem Menueleisten-Icon) verankert.
+// Es wird nur eine Layer-Animation hinzugefuegt; der Layer selbst bleibt unveraendert (Identitaet),
+// dadurch kann nach dem Ende nichts verkleinert haengen bleiben.
+#define PANEL_POP_START_SCALE   0.55
+#define PANEL_POP_DURATION      0.35
+#define PANEL_FADE_DURATION     0.15
+
+// Weiches Ein-/Ausklappen der Liste beim Klick auf die Checkbox "Safari": die Fensterhoehe wird per Timer
+// in kleinen Schritten geaendert (oben fest). Am Ende setzt restorePanel: immer den exakten Endzustand.
+// Der Zaehler macht veraltete Durchlaeufe (schnelle Klicks, Schliessen) wirkungslos.
+#define PANEL_RESIZE_DURATION   0.22
+static NSUInteger bfPanelResizeId = 0;
 
 
 #pragma mark -
@@ -790,7 +862,52 @@ static bool ANIMATE = false;
     if (!ANIMATE) {
         [self locateFrameDataCountSize:panelRect.size];
         [panel setFrame:panelRect display:YES];
-        [panel setAlphaValue:1];
+        
+        NSUInteger fadeId = ++bfPanelFadeId;
+        if ([[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion]) {
+            [panel setAlphaValue:1];
+        }
+        else {
+            // Panel "poppt" aus dem Menueleisten-Icon auf (verankert an der Pfeilspitze)
+            CALayer *popLayer = [[panel contentView] layer];
+            if (popLayer != nil) {
+                CGFloat tipY = popLayer.isGeometryFlipped ? 0.0 : popLayer.bounds.size.height;
+                CGPoint tip  = CGPointMake((CGFloat)self.a_backgroundView.arrowX, tipY);
+                bfAddPopAnimation(popLayer, tip, PANEL_POP_START_SCALE, PANEL_POP_DURATION, 0, @"bfPanelZoom");
+            }
+            
+            // Badges poppen nacheinander auf
+            NSArray *badgeTags = [[self.a_badges allKeys] sortedArrayUsingSelector:@selector(compare:)];
+            NSUInteger badgeIndex = 0;
+            for (NSNumber *badgeTag in badgeTags) {
+                BFBadgeView *badge = [self.a_badges objectForKey:badgeTag];
+                CALayer *badgeLayer = [badge layer];
+                if (badge == nil || [badge isHidden] || badgeLayer == nil) {
+                    continue;
+                }
+                CGPoint center = CGPointMake(badgeLayer.anchorPoint.x * badgeLayer.bounds.size.width,
+                                             badgeLayer.anchorPoint.y * badgeLayer.bounds.size.height);
+                bfAddPopAnimation(badgeLayer, center, 0.01, 0.32, 0.12 + 0.03 * badgeIndex, @"bfBadgePop");
+                badgeIndex++;
+            }
+            
+            [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+                [context setDuration:PANEL_FADE_IN_DURATION];
+                [context setTimingFunction:[CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut]];
+                [[panel animator] setAlphaValue:1];
+            } completionHandler:^{
+                if (fadeId == bfPanelFadeId) {
+                    [panel setAlphaValue:1];
+                }
+            }];
+            
+            // Absicherung: das Panel darf nie halb transparent haengen bleiben
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.8 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                if (fadeId == bfPanelFadeId && [panel isVisible]) {
+                    [panel setAlphaValue:1];
+                }
+            });
+        }
     }
     else {
         NSTimeInterval openDuration = OPEN_DURATION;
@@ -876,6 +993,12 @@ static bool ANIMATE = false;
 {
     // No animation
     if (!ANIMATE) {
+        bfPanelFadeId++;   // laufendes Einblenden ungueltig machen
+        bfPanelResizeId++; // laufendes Ein-/Ausklappen ungueltig machen
+        [[[[self window] contentView] layer] removeAnimationForKey:@"bfPanelZoom"];
+        for (BFBadgeView *badge in [self.a_badges allValues]) {
+            [[badge layer] removeAnimationForKey:@"bfBadgePop"];
+        }
         [[self window] setAlphaValue:0.0];
         [self restorePanel:0.0];
         [self close];
@@ -1148,17 +1271,58 @@ static bool ANIMATE = false;
     [self.a_settings saveSettings];
     
     [self.a_btnCleanActive setState:self.a_settings.CleanActive];
-    [self.a_containerView setHidden:YES];
     
-    //if (!isMyQueue()) {
-    //    self.myQueue = dispatch_queue_create("QueDataCountAndSize", DISPATCH_QUEUE_SERIAL);
-    //}
-    //dispatch_queue_set_specific(self.myQueue, @selector(myQueue), @selector(myQueue), NULL);
-    
-    // dispatch_get_current_queue | dispatch_get_main_queue
-    //dispatch_async(self.myQueue, ^{
     [self refreshDataCountUseCache:YES];
-    [self restorePanel:1.0];
+    [self animatePanelResizeForCleanActive];
+}
+
+
+/**
+ klappt die Liste weich ein oder aus (Fensterhoehe animiert, Oberkante bleibt stehen)
+ */
+- (void)animatePanelResizeForCleanActive
+{
+    NSWindow *panel   = [self window];
+    BOOL active       = self.a_settings.CleanActive;
+    CGFloat targetH   = (active ? POPUP_HEIGHT + (ROW_HEIGHT * self.a_tableRows.count) : POPUP_HEIGHT_CLOSED);
+    NSRect startFrame = [panel frame];
+    CGFloat startH    = NSHeight(startFrame);
+    
+    if (![panel isVisible] || fabs(targetH - startH) < 1.0 || [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion]) {
+        bfPanelResizeId++;
+        [self restorePanel:1.0];
+        return;
+    }
+    
+    // Beim Aufklappen sofort sichtbar machen, beim Zuklappen erst am Ende verstecken (macht restorePanel:)
+    [self.a_btnBurnNow setHidden:!active];
+    if (active) {
+        [self.a_containerView setHidden:NO];
+    }
+    
+    NSUInteger animId     = ++bfPanelResizeId;
+    CFTimeInterval begin  = CACurrentMediaTime();
+    
+    NSTimer *timer = [NSTimer timerWithTimeInterval:(1.0 / 60.0) repeats:YES block:^(NSTimer *t) {
+        if (animId != bfPanelResizeId) {
+            [t invalidate];
+            return;
+        }
+        
+        CGFloat progress = (CGFloat)((CACurrentMediaTime() - begin) / PANEL_RESIZE_DURATION);
+        if (progress >= 1.0) {
+            [t invalidate];
+            [self restorePanel:1.0];   // exakter Endzustand
+            return;
+        }
+        
+        CGFloat eased = 1.0 - pow(1.0 - progress, 3.0);   // Ease-Out
+        NSRect frame  = startFrame;
+        frame.size.height = startH + (targetH - startH) * eased;
+        frame.origin.y    = NSMaxY(startFrame) - NSHeight(frame);
+        [panel setFrame:frame display:YES];
+    }];
+    [[NSRunLoop mainRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
 }
 
 
