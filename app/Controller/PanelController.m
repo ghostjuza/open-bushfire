@@ -21,7 +21,7 @@
 #define OPEN_DURATION 0  //.15
 #define CLOSE_DURATION 0.3 //.1
 #define POPUP_HEIGHT 78
-#define POPUP_HEIGHT_SMALL 200
+#define POPUP_HEIGHT_SMALL 226
 #define POPUP_HEIGHT_CLOSED 76
 #define PANEL_WIDTH 325
 #define ROW_HEIGHT 32
@@ -243,6 +243,7 @@ static void bfAddPopAnimation(CALayer *layer, CGPoint pointInLayer, CGFloat star
 @property (nonatomic, retain) NSButton *a_chkStartup;
 @property (nonatomic, retain) NSButton *a_btnCleanSecureActive;
 @property (nonatomic, retain) NSButton *a_btnLogEnabled;
+@property (nonatomic, retain) NSButton *a_btnPanelAnimation;
 @property (nonatomic, retain) NSTextField *TfDataCountSize;
 @property (nonatomic, retain) NSMutableDictionary *a_badges;   // tag -> BFBadgeView
 
@@ -268,6 +269,7 @@ static void bfAddPopAnimation(CALayer *layer, CGPoint pointInLayer, CGFloat star
 - (IBAction)actionSettingsAbout:(id)sender;
 - (IBAction)actionToggleLoginItems:(id)sender;
 - (IBAction)actionSettings:(id)sender;
+- (IBAction)actionPanelAnimation:(id)sender;
 - (IBAction)actionBurnNow:(id)sender;
 
 @end
@@ -285,6 +287,7 @@ static void bfAddPopAnimation(CALayer *layer, CGPoint pointInLayer, CGFloat star
 @synthesize a_btnCleanActive        = _a_btnCleanActive;
 @synthesize a_btnCleanSecureActive  = _a_btnCleanSecureActive;
 @synthesize a_btnLogEnabled         = _a_btnLogEnabled;
+@synthesize a_btnPanelAnimation     = _a_btnPanelAnimation;
 @synthesize a_btnSettingsAbout      = _a_btnSettingsAbout;
 @synthesize a_btnSettingsQuit       = _a_btnSettingsQuit;
 @synthesize a_chkStartup            = _a_chkStartup;
@@ -365,6 +368,7 @@ static NSUInteger bfPanelResizeId = 0;
     [_a_btnCleanActive release];
     [_a_btnCleanSecureActive release];
     [_a_btnLogEnabled release];
+    [_a_btnPanelAnimation release];
     [_a_btnSettingsAbout release];
     [_a_btnSettingsQuit release];
     [_a_chkStartup release];
@@ -642,10 +646,14 @@ static NSUInteger bfPanelResizeId = 0;
     [self.a_btnLogEnabled setState:self.a_settings.LogEnabled];
     [settingsView addSubview:self.a_btnLogEnabled];
     
-    self.a_btnUpdateCheck = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 103, 175, 20) title:NSLocalizedString(@"update", nil) action:@selector(actionUpdateCheck:)];
+    self.a_btnPanelAnimation = [self checkboxWithFrame:NSMakeRect(12, 95, PANEL_WIDTH - 24, 18) title:NSLocalizedString(@"panel_animation", nil) bold:NO action:@selector(actionPanelAnimation:)];
+    [self.a_btnPanelAnimation setState:self.a_settings.PanelAnimationEnabled];
+    [settingsView addSubview:self.a_btnPanelAnimation];
+    
+    self.a_btnUpdateCheck = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 129, 175, 20) title:NSLocalizedString(@"update", nil) action:@selector(actionUpdateCheck:)];
     [settingsView addSubview:self.a_btnUpdateCheck];
     
-    self.a_btnSettingsQuit = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 131, 175, 20) title:NSLocalizedString(@"quit", nil) action:@selector(actionSettingsQuit:)];
+    self.a_btnSettingsQuit = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), 157, 175, 20) title:NSLocalizedString(@"quit", nil) action:@selector(actionSettingsQuit:)];
     [settingsView addSubview:self.a_btnSettingsQuit];
     
     self.a_btnSettingsAbout = [self pillButtonWithFrame:NSMakeRect(round((PANEL_WIDTH - 175) / 2.0), POPUP_HEIGHT_SMALL - 26, 175, 20) title:NSLocalizedString(@"about", nil) action:@selector(actionSettingsAbout:)];
@@ -864,7 +872,7 @@ static NSUInteger bfPanelResizeId = 0;
         [panel setFrame:panelRect display:YES];
         
         NSUInteger fadeId = ++bfPanelFadeId;
-        if ([[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion]) {
+        if (!self.a_settings.PanelAnimationEnabled || [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion]) {
             [panel setAlphaValue:1];
         }
         else {
@@ -1288,7 +1296,7 @@ static NSUInteger bfPanelResizeId = 0;
     NSRect startFrame = [panel frame];
     CGFloat startH    = NSHeight(startFrame);
     
-    if (![panel isVisible] || fabs(targetH - startH) < 1.0 || [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion]) {
+    if (!self.a_settings.PanelAnimationEnabled || ![panel isVisible] || fabs(targetH - startH) < 1.0 || [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion]) {
         bfPanelResizeId++;
         [self restorePanel:1.0];
         return;
@@ -1349,6 +1357,14 @@ static NSUInteger bfPanelResizeId = 0;
  toggle global settings sweep
  @param sender of nsbutton
  */
+- (IBAction)actionPanelAnimation:(id)sender
+{
+    self.a_settings.PanelAnimationEnabled = !self.a_settings.PanelAnimationEnabled;
+    [self.a_settings saveSettings];
+    [self.a_btnPanelAnimation setState:self.a_settings.PanelAnimationEnabled];
+}
+
+
 - (IBAction)actionLogEnable:(id)sender
 {
     self.a_settings.LogEnabled = !self.a_settings.LogEnabled;
