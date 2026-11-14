@@ -1,6 +1,8 @@
 #import "AboutWindowController.h"
 #import "Helper.h"
 
+#define ABOUT_LOGO_SIZE 64.0
+
 @interface AboutWindowController () {
     id _closeClickMonitor;
 }
@@ -57,6 +59,15 @@
     
     [self.TfCopyright setStringValue:[NSString stringWithFormat:NSLocalizedString(@"about_copyright", nil), [dateFormatter stringFromDate:[NSDate date]]]];
     [dateFormatter release];
+    
+    // App-Logo ueber dem Titel
+    NSView *contentView = [[self window] contentView];
+    NSImageView *logoView = [[[NSImageView alloc] initWithFrame:NSMakeRect(floor((NSWidth([contentView bounds]) - ABOUT_LOGO_SIZE) / 2), 188, ABOUT_LOGO_SIZE, ABOUT_LOGO_SIZE)] autorelease];
+    [logoView setImage:[NSApp applicationIconImage]];
+    [logoView setImageScaling:NSImageScaleProportionallyUpOrDown];
+    [logoView setEditable:NO];
+    [logoView setAutoresizingMask:NSViewMinXMargin | NSViewMaxXMargin | NSViewMinYMargin];
+    [contentView addSubview:logoView];
     
     [self.BtnClose setTarget:self];
     [self.BtnClose setAction:@selector(actionClose:)];

@@ -43,9 +43,11 @@
   
     CGFloat colorLocations[5];
     colorLocations[0]= 0.0;
-    colorLocations[1]= 0.25;
-    colorLocations[2]= 0.85;
-    colorLocations[3]= 0.85;
+    // feste Abstaende (oberer Auslauf 59 pt, Fusszeile 36 pt), unabhaengig von der Fensterhoehe
+    CGFloat viewHeight = MAX(NSHeight([self bounds]), 100.0);
+    colorLocations[1]= 59.0 / viewHeight;
+    colorLocations[2]= 1.0 - 36.0 / viewHeight;
+    colorLocations[3]= 1.0 - 36.0 / viewHeight;
     colorLocations[4]= 1.0;
     
     NSGradient *fillGradient = [[NSGradient alloc] initWithColors:
