@@ -266,14 +266,57 @@ static CGFloat bfSpringProgress(CGFloat u)
 // skaliert es per Feder-Animation. Das echte Panel (mit allen Views) wird dabei nicht verformt,
 // bleibt unsichtbar und wird erst am Ende der Animation eingeblendet.
 static NSWindow *bfPopWindow = nil;
+static BOOL bfFlipActive = NO;   // Drehung Hauptseite <-> Einstellungen laeuft (Klicks darauf werden ignoriert)
 
 static void bfClosePopWindow(void)
 {
+    bfFlipActive = NO;
     if (bfPopWindow != nil) {
         [bfPopWindow orderOut:nil];
         [bfPopWindow release];
         bfPopWindow = nil;
     }
+}
+
+
+// Standbild des Panels inkl. Hintergrund (+1 retained, vom Aufrufer mit CGImageRelease freizugeben; NULL bei Fehler).
+// Hintergrund-Layer (Verlauf, Rahmen, Linien) rendert BackgroundView selbst, die Controls kommen aus cacheDisplayInRect:.
+static CGImageRef bfCopyPanelSnapshot(NSView *content, CGFloat scale)
+{
+    NSRect bounds = [content bounds];
+    if (content == nil || NSIsEmptyRect(bounds) || scale < 1.0) {
+        return NULL;
+    }
+    
+    [content displayIfNeeded];
+    NSBitmapImageRep *rep = [content bitmapImageRepForCachingDisplayInRect:bounds];
+    if (rep == nil) {
+        return NULL;
+    }
+    [content cacheDisplayInRect:bounds toBitmapImageRep:rep];
+    CGImageRef controls = [rep CGImage];
+    if (controls == NULL) {
+        return NULL;
+    }
+    
+    size_t pw = (size_t)ceil(NSWidth(bounds) * scale);
+    size_t ph = (size_t)ceil(NSHeight(bounds) * scale);
+    CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+    CGContextRef ctx = CGBitmapContextCreate(NULL, pw, ph, 8, 0, cs, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+    CGColorSpaceRelease(cs);
+    if (ctx == NULL) {
+        return NULL;
+    }
+    
+    CGContextScaleCTM(ctx, scale, scale);
+    if ([content respondsToSelector:@selector(renderBackgroundInContext:)]) {
+        [(BackgroundView *)content renderBackgroundInContext:ctx];
+    }
+    CGContextDrawImage(ctx, CGRectMake(0, 0, NSWidth(bounds), NSHeight(bounds)), controls);
+    
+    CGImageRef result = CGBitmapContextCreateImage(ctx);
+    CGContextRelease(ctx);
+    return result;   // +1
 }
 
 
@@ -321,6 +364,7 @@ static void bfClosePopWindow(void)
 - (IBAction)actionSettings:(id)sender;
 - (void)applySettingsPageToSettings:(BOOL)toSettings;
 - (BOOL)animateSettingsSwitchToSettings:(BOOL)toSettings;
+- (BOOL)flipSwitchToSettings:(BOOL)toSettings;
 - (NSArray *)mainPageViews;
 - (NSArray *)settingsPageViews;
 - (void)resetSwitchAlphas;
@@ -368,14 +412,15 @@ static NSUInteger bfPanelFadeId = 0;
 // Zoom beim Oeffnen: das Panel waechst von 90 % auf 100 %, oben mittig (unter dem Menueleisten-Icon) verankert.
 // Es wird nur eine Layer-Animation hinzugefuegt; der Layer selbst bleibt unveraendert (Identitaet),
 // dadurch kann nach dem Ende nichts verkleinert haengen bleiben.
-#define PANEL_POP_START_SCALE   0.55
-#define PANEL_POP_DURATION      0.35
-#define PANEL_FADE_DURATION     0.15
+#define PANEL_POP_START_SCALE   0.42
+#define PANEL_POP_DURATION      0.22
+#define PANEL_FADE_DURATION     0.09
 
 // Weiches Ein-/Ausklappen der Liste beim Klick auf die Checkbox "Safari": die Fensterhoehe wird per Timer
 // in kleinen Schritten geaendert (oben fest). Am Ende setzt restorePanel: immer den exakten Endzustand.
 // Der Zaehler macht veraltete Durchlaeufe (schnelle Klicks, Schliessen) wirkungslos.
 #define PANEL_RESIZE_DURATION   0.22
+#define PANEL_FLIP_DURATION     0.55   // Drehung um die vertikale Mittelachse
 #define PANEL_SWITCH_DURATION   0.28   // Wechsel Hauptseite <-> Einstellungen
 static NSUInteger bfPanelResizeId = 0;
 
@@ -922,6 +967,7 @@ static NSUInteger bfPanelResizeId = 0;
     
     [self applyFileVaultState];
     [NSApp activateIgnoringOtherApps:NO];
+    [panel setHasShadow:YES];
     [panel setAlphaValue:0];
     [self updateArrowForPanelRect:panelRect statusRect:statusRect];
     [panel setFrame:panelRect display:YES];
@@ -974,92 +1020,63 @@ static NSUInteger bfPanelResizeId = 0;
 
 
 /**
- Pop beim Oeffnen: ein Standbild des fertigen Panels waechst in einem Hilfsfenster mit leichtem
- Ueberschwingen aus der Pfeilspitze. Am Ende wird das echte Panel eingeblendet und die Zaehlung gestartet.
- @returns NO, wenn kein Standbild erzeugt werden konnte (dann oeffnet das Panel ohne Animation)
+ Zoom beim Oeffnen: das echte Panel selbst waechst aus der Pfeilspitze (Animation der Layer-Transformation des
+ Inhalts, ohne Standbild und ohne Hilfsfenster). Am Ende wird die Zaehlung gestartet.
+ @returns NO, wenn kein Layer vorhanden ist (dann oeffnet das Panel ohne Animation)
  */
 - (BOOL)popOpenPanel:(NSWindow *)panel fadeId:(NSUInteger)fadeId
 {
     NSView *content = [panel contentView];
     NSRect bounds   = [content bounds];
-    if (content == nil || NSIsEmptyRect(bounds)) {
+    if (content == nil || NSIsEmptyRect(bounds) || ![content wantsLayer] || [content layer] == nil) {
         return NO;
     }
     
-    NSBitmapImageRep *rep = [content bitmapImageRepForCachingDisplayInRect:bounds];
-    if (rep == nil) {
-        return NO;
-    }
-    [content cacheDisplayInRect:bounds toBitmapImageRep:rep];
-    CGImageRef image = [rep CGImage];
-    if (image == NULL) {
-        return NO;
-    }
-    
-    NSWindow *pop = [[NSWindow alloc] initWithContentRect:[panel frame]
-                                                styleMask:NSWindowStyleMaskBorderless
-                                                  backing:NSBackingStoreBuffered
-                                                    defer:NO];
-    [pop setReleasedWhenClosed:NO];
-    [pop setAnimationBehavior:NSWindowAnimationBehaviorNone];
-    [pop setOpaque:NO];
-    [pop setBackgroundColor:[NSColor clearColor]];
-    [pop setHasShadow:NO];
-    [pop setIgnoresMouseEvents:YES];
-    [pop setLevel:[panel level] + 1];
-    [pop setCollectionBehavior:[panel collectionBehavior]];
-    
-    NSView *view = [[[NSView alloc] initWithFrame:bounds] autorelease];
-    [view setWantsLayer:YES];
-    [pop setContentView:view];
-    
+    CALayer *layer = [content layer];
     CGFloat width  = NSWidth(bounds);
     CGFloat height = NSHeight(bounds);
     CGFloat tipX   = MAX(0.0, MIN(width, (CGFloat)self.a_backgroundView.arrowX));
     
-    // Verankerung an der Pfeilspitze (oben, Hilfsfenster ist nicht gespiegelt: y = Hoehe ist oben)
-    CALayer *layer     = [CALayer layer];
-    layer.bounds       = CGRectMake(0, 0, width, height);
-    layer.anchorPoint  = CGPointMake(tipX / width, 1.0);
-    layer.position     = CGPointMake(tipX, height);
-    layer.contents     = (id)image;
-    layer.contentsScale = [panel backingScaleFactor];
-    [[view layer] addSublayer:layer];
+    // Skalierung um die Pfeilspitze (oben): Transformation wirkt um den Ankerpunkt des Layers
+    CGPoint anchor = layer.anchorPoint;
+    CGFloat px = tipX - anchor.x * width;
+    CGFloat py = height - anchor.y * height;
     
-    NSMutableArray *values = [NSMutableArray array];
-    const int steps = 40;
-    for (int i = 0; i <= steps; i++) {
-        CGFloat scale = PANEL_POP_START_SCALE + (1.0 - PANEL_POP_START_SCALE) * bfSpringProgress((CGFloat)i / (CGFloat)steps);
-        [values addObject:[NSNumber numberWithDouble:scale]];
-    }
-    CAKeyframeAnimation *scaleAnim = [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
-    scaleAnim.values          = values;
-    scaleAnim.duration        = PANEL_POP_DURATION;
-    scaleAnim.calculationMode = kCAAnimationLinear;
+    CATransform3D start = CATransform3DIdentity;
+    start = CATransform3DTranslate(start, px, py, 0);
+    start = CATransform3DScale(start, PANEL_POP_START_SCALE, PANEL_POP_START_SCALE, 1.0);
+    start = CATransform3DTranslate(start, -px, -py, 0);
+    
+    [layer removeAllAnimations];
+    
+    // Schatten waehrend der Animation aus (er wuerde sonst in voller Groesse stehen bleiben)
+    [panel setHasShadow:NO];
+    
+    CABasicAnimation *scaleAnim = [CABasicAnimation animationWithKeyPath:@"transform"];
+    scaleAnim.fromValue      = [NSValue valueWithCATransform3D:start];
+    scaleAnim.toValue        = [NSValue valueWithCATransform3D:CATransform3DIdentity];
+    scaleAnim.duration       = PANEL_POP_DURATION;
+    scaleAnim.fillMode       = kCAFillModeBackwards;
+    scaleAnim.timingFunction = [CAMediaTimingFunction functionWithControlPoints:0.16f :1.0f :0.3f :1.0f];
     [layer addAnimation:scaleAnim forKey:@"bfPopScale"];
     
     CABasicAnimation *fadeAnim = [CABasicAnimation animationWithKeyPath:@"opacity"];
     fadeAnim.fromValue = [NSNumber numberWithFloat:0.0f];
     fadeAnim.toValue   = [NSNumber numberWithFloat:1.0f];
     fadeAnim.duration  = PANEL_FADE_DURATION;
+    fadeAnim.fillMode  = kCAFillModeBackwards;
     [layer addAnimation:fadeAnim forKey:@"bfPopFade"];
     
-    bfPopWindow = pop;   // Besitz bleibt bei der statischen Variable
-    [pop orderFront:nil];
+    // Echtes Panel sichtbar schalten: ab hier laufen die Animationen auf dem echten Inhalt
+    [panel setAlphaValue:1];
     
-    // Ende: echtes Panel einblenden (identisches Bild), Hilfsfenster danach entfernen, Zaehlung starten
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((PANEL_POP_DURATION + 0.03) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (fadeId != bfPanelFadeId) {
             return;   // inzwischen geschlossen oder neu geoeffnet
         }
-        [panel setAlphaValue:1];
+        [panel setHasShadow:YES];
+        [panel invalidateShadow];
         [self refreshDataCountUseCache:NO];
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (bfPopWindow == pop) {
-                bfClosePopWindow();
-            }
-        });
     });
     
     return YES;
@@ -1134,6 +1151,8 @@ static NSUInteger bfPanelResizeId = 0;
         bfPanelFadeId++;   // laufendes Einblenden ungueltig machen
         bfPanelResizeId++; // laufendes Ein-/Ausklappen ungueltig machen
         bfClosePopWindow();
+        [[[[self window] contentView] layer] removeAllAnimations];
+        [[self window] setHasShadow:YES];
         [[self window] setAlphaValue:0.0];
         [self restorePanel:0.0];
         [self close];
@@ -1310,6 +1329,10 @@ static NSUInteger bfPanelResizeId = 0;
  */
 - (IBAction)actionSettings:(id)sender
 {
+    if (bfFlipActive) {
+        return;   // Drehung laeuft noch
+    }
+    
     BOOL toSettings = ![self.a_btnCleanActive isHidden];
     
     if (![self animateSettingsSwitchToSettings:toSettings]) {
@@ -1373,6 +1396,166 @@ static NSUInteger bfPanelResizeId = 0;
 
 
 /**
+ Dreht das Panel um die vertikale Mittelachse: Standbild der aktuellen Seite (Vorderseite) und Standbild der
+ Zielseite (Rueckseite) drehen sich in einem Hilfsfenster um 180 Grad, waehrend das echte Panel unsichtbar
+ bereits den Endzustand annimmt. Danach wird das echte Panel eingeblendet.
+ Liefert NO, wenn das Standbild der aktuellen Seite nicht erzeugt werden konnte (dann ist nichts veraendert).
+ */
+- (BOOL)flipSwitchToSettings:(BOOL)toSettings
+{
+    NSWindow *panel  = [self window];
+    NSView *content  = [panel contentView];
+    NSRect startBounds = [content bounds];
+    NSRect startFrame  = [panel frame];
+    if (content == nil || NSIsEmptyRect(startBounds)) {
+        return NO;
+    }
+    
+    CGFloat scaleFactor = [panel backingScaleFactor];
+    
+    // 1) Vorderseite: aktuelle Seite
+    CGImageRef frontImage = bfCopyPanelSnapshot(content, scaleFactor);
+    if (frontImage == NULL) {
+        return NO;
+    }
+    
+    // 2) Echtes Panel unsichtbar auf Endzustand bringen und Rueckseite aufnehmen
+    bfClosePopWindow();
+    [panel setAlphaValue:0.0];
+    [self applySettingsPageToSettings:toSettings];
+    [panel setAlphaValue:0.0];   // resizePanel/restorePanel setzen die Deckkraft auf 1: sonst scheint das echte Panel unter der Drehung durch
+    [panel displayIfNeeded];
+    
+    NSRect endFrame    = [panel frame];
+    NSRect endBounds   = [content bounds];
+    CGImageRef backImage = bfCopyPanelSnapshot(content, scaleFactor);
+    if (backImage == NULL) {
+        CGImageRelease(frontImage);
+        [panel setAlphaValue:1.0];   // Endzustand steht bereits, nur ohne Animation
+        return YES;
+    }
+    
+    // 3) Hilfsfenster ueber dem Panel (Oberkante fest)
+    CGFloat width  = NSWidth(startBounds);
+    CGFloat startH = NSHeight(startFrame);
+    CGFloat endH   = NSHeight(endFrame);
+    CGFloat maxH   = MAX(startH, endH);
+    CGFloat top    = NSMaxY(endFrame);
+    NSRect popRect = NSMakeRect(NSMinX(endFrame), top - maxH, width, maxH);
+    
+    NSWindow *pop = [[NSWindow alloc] initWithContentRect:popRect
+                                                styleMask:NSWindowStyleMaskBorderless
+                                                  backing:NSBackingStoreBuffered
+                                                    defer:NO];
+    [pop setReleasedWhenClosed:NO];
+    [pop setAnimationBehavior:NSWindowAnimationBehaviorNone];
+    [pop setOpaque:NO];
+    [pop setBackgroundColor:[NSColor clearColor]];
+    [pop setHasShadow:NO];
+    [pop setIgnoresMouseEvents:YES];
+    [pop setLevel:[panel level] + 1];
+    [pop setCollectionBehavior:[panel collectionBehavior]];
+    
+    NSView *view = [[[NSView alloc] initWithFrame:NSMakeRect(0, 0, width, maxH)] autorelease];
+    [view setWantsLayer:YES];
+    [pop setContentView:view];
+    
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];   // keine impliziten Animationen, nur die expliziten unten
+    
+    // Perspektive
+    CATransform3D perspective = CATransform3DIdentity;
+    perspective.m34 = -1.0 / 1100.0;
+    [view layer].sublayerTransform = perspective;
+    
+    CATransformLayer *card = [CATransformLayer layer];
+    card.bounds   = CGRectMake(0, 0, width, maxH);
+    card.position = CGPointMake(width / 2.0, maxH / 2.0);
+    [[view layer] addSublayer:card];
+    
+    CALayer *front = [CALayer layer];
+    front.anchorPoint   = CGPointMake(0.5, 1.0);
+    front.position      = CGPointMake(width / 2.0, maxH);
+    front.bounds        = CGRectMake(0, 0, width, startH);
+    front.masksToBounds = YES;
+    front.contentsGravity = kCAGravityTop;
+    front.contentsScale = scaleFactor;
+    front.contents      = (id)frontImage;
+    
+    CALayer *back = [CALayer layer];
+    back.anchorPoint   = CGPointMake(0.5, 1.0);
+    back.position      = CGPointMake(width / 2.0, maxH);
+    back.bounds        = CGRectMake(0, 0, width, endH);
+    back.masksToBounds = YES;
+    back.contentsGravity = kCAGravityTop;
+    back.contentsScale = scaleFactor;
+    back.contents      = (id)backImage;
+    back.transform     = CATransform3DMakeRotation(M_PI, 0, 1, 0);   // Rueckseite zeigt nach hinten
+    
+    [card addSublayer:front];
+    [card addSublayer:back];
+    CGImageRelease(frontImage);   // die Layer halten die Bilder
+    CGImageRelease(backImage);
+    
+    // Animation per Timer (60 Hz), Layerwerte werden pro Schritt direkt gesetzt (deterministisch, keine impliziten Animationen):
+    // Drehwinkel, Hoehe (Bild wird auf die jeweilige Hoehe gestreckt) und Seitenwechsel exakt bei 90 Grad.
+    CGFloat totalAngle = (toSettings ? M_PI : -M_PI);
+    front.contentsGravity = kCAGravityResize;
+    back.contentsGravity  = kCAGravityResize;
+    front.masksToBounds   = NO;
+    back.masksToBounds    = NO;
+    
+    void (^applyStep)(CGFloat) = ^(CGFloat e) {
+        [CATransaction begin];
+        [CATransaction setDisableActions:YES];
+        CGFloat angle = totalAngle * e;
+        CGFloat h     = startH + (endH - startH) * e;
+        card.transform = CATransform3DMakeRotation(angle, 0, 1, 0);
+        front.bounds   = CGRectMake(0, 0, width, h);
+        back.bounds    = CGRectMake(0, 0, width, h);
+        BOOL showBack  = (fabs(angle) >= M_PI_2);
+        front.opacity  = (showBack ? 0.0f : 1.0f);
+        back.opacity   = (showBack ? 1.0f : 0.0f);
+        [CATransaction commit];
+    };
+    applyStep = [[applyStep copy] autorelease];   // MRC: Block darf den Timer-Block ueberleben
+    applyStep(0.0);
+    [CATransaction commit];
+    
+    bfPopWindow  = pop;
+    bfFlipActive = YES;
+    [pop orderFront:nil];
+    
+    CFTimeInterval begin = CACurrentMediaTime();
+    NSTimer *timer = [NSTimer timerWithTimeInterval:(1.0 / 60.0) repeats:YES block:^(NSTimer *t) {
+        if (bfPopWindow != pop) {
+            [t invalidate];   // inzwischen geschlossen oder ersetzt
+            return;
+        }
+        
+        CGFloat u = (CGFloat)((CACurrentMediaTime() - begin) / PANEL_FLIP_DURATION);
+        if (u >= 1.0) {
+            [t invalidate];
+            applyStep(1.0);
+            [panel setAlphaValue:1.0];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (bfPopWindow == pop) {
+                    bfClosePopWindow();
+                }
+            });
+            return;
+        }
+        
+        CGFloat e = (u < 0.5 ? 2.0 * u * u : 1.0 - pow(-2.0 * u + 2.0, 2.0) / 2.0);   // Ease-In-Out
+        applyStep(e);
+    }];
+    [[NSRunLoop mainRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
+    
+    return YES;
+}
+
+
+/**
  Animiertes Umschalten: Hoehe wechselt weich (Oberkante fest), die eine Seite blendet aus, die andere ein.
  Liefert NO, wenn nicht animiert wird (Einstellung aus, Bewegung reduzieren, Panel nicht sichtbar);
  der Aufrufer setzt dann direkt den Endzustand. Am Ende der Animation wird immer der exakte Endzustand gesetzt.
@@ -1388,6 +1571,11 @@ static NSUInteger bfPanelResizeId = 0;
     if (!self.a_settings.PanelAnimationEnabled || ![panel isVisible] || [panel alphaValue] < 0.99
         || [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion]) {
         return NO;
+    }
+    
+    // Bevorzugt: Drehung um die Mittelachse (Standbilder); schlaegt sie fehl, gilt die Ueberblendung unten
+    if ([self flipSwitchToSettings:toSettings]) {
+        return YES;
     }
     
     NSArray *outViews = (toSettings ? [self mainPageViews] : [self settingsPageViews]);

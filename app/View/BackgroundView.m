@@ -15,6 +15,7 @@
     CAShapeLayer    *_borderLayer;
     CALayer         *_lineTopLayer;
     CALayer         *_lineBottomLayer;
+    CGPathRef        _shapePath;
 }
 @end
 
@@ -64,6 +65,9 @@
     [_borderLayer release];
     [_lineTopLayer release];
     [_lineBottomLayer release];
+    if (_shapePath) {
+        CGPathRelease(_shapePath);
+    }
     [super dealloc];
 }
 
@@ -149,8 +153,54 @@
     _lineTopLayer.frame    = CGRectMake(1, h - 44, w - 2, 1);
     _lineBottomLayer.frame = CGRectMake(1, 32, w - 2, 1);
     
-    CGPathRelease(path);
+    if (_shapePath) {
+        CGPathRelease(_shapePath);
+    }
+    _shapePath = path;   // behalten fuer renderBackgroundInContext:
     [CATransaction commit];
+}
+
+
+/**
+ zeichnet nur die Hintergrund-Layer (ohne Controls) in einen Grafikkontext: cacheDisplayInRect: erfasst
+ diese Layer nicht, ein Standbild haette sonst keinen Hintergrund
+ */
+- (void)renderBackgroundInContext:(CGContextRef)ctx
+{
+    CGFloat w = NSWidth([self bounds]);
+    CGFloat h = NSHeight([self bounds]);
+    if (_shapePath == NULL || w < 1 || h < 1) {
+        return;
+    }
+    
+    // Verlauf direkt mit Core Graphics (renderInContext: ignoriert Masken und lieferte einen durchscheinenden Hintergrund)
+    CGFloat vh = MAX(h, 80.0);
+    CGFloat comps[] = {0.20, 1.0,  0.10, 1.0,  0.10, 1.0,  0.15, 1.0,  0.15, 1.0};
+    CGFloat locs[]  = {0.0, 33.0 / vh, (vh - 33.0) / vh, (vh - 32.0) / vh, 1.0};
+    CGColorSpaceRef gray = CGColorSpaceCreateWithName(kCGColorSpaceGenericGrayGamma2_2);
+    CGGradientRef gradient = CGGradientCreateWithColorComponents(gray, comps, locs, 5);
+    
+    CGContextSaveGState(ctx);
+    CGContextAddPath(ctx, _shapePath);
+    CGContextClip(ctx);
+    CGContextDrawLinearGradient(ctx, gradient, CGPointMake(w / 2, h), CGPointMake(w / 2, 0), 0);
+    CGContextRestoreGState(ctx);
+    CGGradientRelease(gradient);
+    CGColorSpaceRelease(gray);
+    
+    // Rahmen
+    CGContextSaveGState(ctx);
+    CGContextAddPath(ctx, _shapePath);
+    CGContextSetGrayStrokeColor(ctx, 0.33, 1.0);
+    CGContextSetLineWidth(ctx, LINE_THICKNESS);
+    CGContextStrokePath(ctx);
+    CGContextRestoreGState(ctx);
+    
+    // Trennlinien
+    CGContextSetGrayFillColor(ctx, 0.0, 0.4);
+    CGContextFillRect(ctx, CGRectMake(1, h - 44, w - 2, 1));
+    CGContextSetGrayFillColor(ctx, 0.0, 0.6);
+    CGContextFillRect(ctx, CGRectMake(1, 32, w - 2, 1));
 }
 
 
