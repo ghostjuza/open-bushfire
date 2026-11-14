@@ -319,6 +319,11 @@ static void bfClosePopWindow(void)
 - (IBAction)actionSettingsAbout:(id)sender;
 - (IBAction)actionToggleLoginItems:(id)sender;
 - (IBAction)actionSettings:(id)sender;
+- (void)applySettingsPageToSettings:(BOOL)toSettings;
+- (BOOL)animateSettingsSwitchToSettings:(BOOL)toSettings;
+- (NSArray *)mainPageViews;
+- (NSArray *)settingsPageViews;
+- (void)resetSwitchAlphas;
 - (IBAction)actionPanelAnimation:(id)sender;
 - (IBAction)actionBurnNow:(id)sender;
 
@@ -371,6 +376,7 @@ static NSUInteger bfPanelFadeId = 0;
 // in kleinen Schritten geaendert (oben fest). Am Ende setzt restorePanel: immer den exakten Endzustand.
 // Der Zaehler macht veraltete Durchlaeufe (schnelle Klicks, Schliessen) wirkungslos.
 #define PANEL_RESIZE_DURATION   0.22
+#define PANEL_SWITCH_DURATION   0.28   // Wechsel Hauptseite <-> Einstellungen
 static NSUInteger bfPanelResizeId = 0;
 
 
@@ -1076,6 +1082,7 @@ static NSUInteger bfPanelResizeId = 0;
     
     [self.a_containerView setHidden:!self.a_settings.CleanActive];
     [self.a_btnSettings setImage:[NSImage imageNamed:@"btn_settings.png"]];
+    [self resetSwitchAlphas];
 }
 
 
@@ -1303,7 +1310,22 @@ static NSUInteger bfPanelResizeId = 0;
  */
 - (IBAction)actionSettings:(id)sender
 {
-    if (![self.a_btnCleanActive isHidden]) {
+    BOOL toSettings = ![self.a_btnCleanActive isHidden];
+    
+    if (![self animateSettingsSwitchToSettings:toSettings]) {
+        [self applySettingsPageToSettings:toSettings];
+    }
+}
+
+
+/**
+ Umschalten Hauptseite <-> Einstellungen ohne Animation (Endzustand, wird auch am Ende der Animation gesetzt)
+ */
+- (void)applySettingsPageToSettings:(BOOL)toSettings
+{
+    bfPanelResizeId++;   // laufende Animation ungueltig machen
+    
+    if (toSettings) {
         [self resizePanel:CGSizeMake(PANEL_WIDTH, POPUP_HEIGHT_SMALL) alpha:1.0];
         
         [self.a_btnBurnNow setHidden:YES];
@@ -1316,18 +1338,106 @@ static NSUInteger bfPanelResizeId = 0;
         [self.a_settingsView setHidden:NO];
         
         [self.a_btnSettings setImage:[NSImage imageNamed:@"btn_settings_pressed.png"]];
-    } 
-    else {
-        //if (!isMyQueue()) {
-        //    self.myQueue = dispatch_queue_create("QueDataCountAndSize", DISPATCH_QUEUE_SERIAL);
-        //}
-        //dispatch_queue_set_specific(self.myQueue, @selector(myQueue), @selector(myQueue), NULL);
-        
-        // dispatch_get_current_queue | dispatch_get_main_queue
-        //dispatch_async(self.myQueue, ^ {
-        [self refreshDataCountUseCache:YES];
-        [self restorePanel:1.0];
+        [self resetSwitchAlphas];
     }
+    else {
+        [self refreshDataCountUseCache:YES];
+        [self restorePanel:1.0];   // setzt auch die Deckkraft zurueck
+    }
+}
+
+
+- (NSArray *)mainPageViews
+{
+    NSMutableArray *views = [NSMutableArray array];
+    if (self.a_btnBurnNow)      [views addObject:self.a_btnBurnNow];
+    if (self.TfDataCountSize)   [views addObject:self.TfDataCountSize];
+    if (self.a_btnCleanActive)  [views addObject:self.a_btnCleanActive];
+    if (self.a_containerView)   [views addObject:self.a_containerView];
+    return views;
+}
+
+- (NSArray *)settingsPageViews
+{
+    NSMutableArray *views = [NSMutableArray array];
+    if (self.a_chkStartup)     [views addObject:self.a_chkStartup];
+    if (self.a_settingsView)   [views addObject:self.a_settingsView];
+    return views;
+}
+
+- (void)resetSwitchAlphas
+{
+    for (NSView *v in [self mainPageViews])     { [v setAlphaValue:1.0]; }
+    for (NSView *v in [self settingsPageViews]) { [v setAlphaValue:1.0]; }
+}
+
+
+/**
+ Animiertes Umschalten: Hoehe wechselt weich (Oberkante fest), die eine Seite blendet aus, die andere ein.
+ Liefert NO, wenn nicht animiert wird (Einstellung aus, Bewegung reduzieren, Panel nicht sichtbar);
+ der Aufrufer setzt dann direkt den Endzustand. Am Ende der Animation wird immer der exakte Endzustand gesetzt.
+ */
+- (BOOL)animateSettingsSwitchToSettings:(BOOL)toSettings
+{
+    NSWindow *panel = [self window];
+    CGFloat targetH = (toSettings ? POPUP_HEIGHT_SMALL
+                                  : (self.a_settings.CleanActive ? POPUP_HEIGHT + (ROW_HEIGHT * self.a_tableRows.count) : POPUP_HEIGHT_CLOSED));
+    NSRect startFrame = [panel frame];
+    CGFloat startH    = NSHeight(startFrame);
+    
+    if (!self.a_settings.PanelAnimationEnabled || ![panel isVisible] || [panel alphaValue] < 0.99
+        || [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion]) {
+        return NO;
+    }
+    
+    NSArray *outViews = (toSettings ? [self mainPageViews] : [self settingsPageViews]);
+    NSArray *inViews  = (toSettings ? [self settingsPageViews] : [self mainPageViews]);
+    
+    // Neue Seite unsichtbar einblenden (Hidden-Zustaende wie im Endzustand)
+    if (toSettings) {
+        [self.a_chkStartup setState:([LoginItemManager isLaunchAtStartup] ? NSControlStateValueOn : NSControlStateValueOff)];
+        [self.a_chkStartup setHidden:NO];
+        [self.a_settingsView setHidden:NO];
+        [self.a_btnSettings setImage:[NSImage imageNamed:@"btn_settings_pressed.png"]];
+    }
+    else {
+        BOOL active = self.a_settings.CleanActive;
+        [self refreshDataCountUseCache:YES];
+        [self.TfDataCountSize setHidden:NO];
+        [self.a_btnCleanActive setHidden:NO];
+        [self.a_btnBurnNow setHidden:!active];
+        [self.a_containerView setHidden:!active];
+        [self.a_btnSettings setImage:[NSImage imageNamed:@"btn_settings.png"]];
+    }
+    for (NSView *v in inViews) { [v setAlphaValue:0.0]; }
+    
+    NSUInteger animId    = ++bfPanelResizeId;
+    CFTimeInterval begin = CACurrentMediaTime();
+    
+    NSTimer *timer = [NSTimer timerWithTimeInterval:(1.0 / 60.0) repeats:YES block:^(NSTimer *t) {
+        if (animId != bfPanelResizeId) {
+            [t invalidate];
+            return;
+        }
+        
+        CGFloat progress = (CGFloat)((CACurrentMediaTime() - begin) / PANEL_SWITCH_DURATION);
+        if (progress >= 1.0) {
+            [t invalidate];
+            [self applySettingsPageToSettings:toSettings];   // exakter Endzustand
+            return;
+        }
+        
+        CGFloat eased = 1.0 - pow(1.0 - progress, 3.0);   // Ease-Out
+        for (NSView *v in outViews) { [v setAlphaValue:MAX(0.0, 1.0 - eased * 1.6)]; }   // alte Seite blendet etwas schneller aus
+        for (NSView *v in inViews)  { [v setAlphaValue:MAX(0.0, MIN(1.0, eased * 1.6 - 0.6))]; }   // neue Seite erst in der zweiten Haelfte
+        
+        NSRect frame      = startFrame;
+        frame.size.height = startH + (targetH - startH) * eased;
+        frame.origin.y    = NSMaxY(startFrame) - NSHeight(frame);
+        [panel setFrame:frame display:YES];
+    }];
+    [[NSRunLoop mainRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
+    return YES;
 }
 
 

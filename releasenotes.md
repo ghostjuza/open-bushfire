@@ -1,7 +1,8 @@
 # Release Notes
 
 ### Build 2026.xxx (2026-11-XX)
-`new` The 'Overwrite Files' option is now greyed out with a 'FileVault active' note when FileVault is on, as overwriting is not needed there.
+`new` The 'Overwrite Files' option is now greyed out with a 'FileVault active' note when FileVault is on, as overwriting is not needed there.  
+`new` The panel now switches smoothly between the main page and the settings when 'Panel animation' is enabled.  
 
 ---
 
