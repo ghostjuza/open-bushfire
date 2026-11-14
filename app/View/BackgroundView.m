@@ -2,7 +2,7 @@
 #import "BackgroundView.h"
 
 #define LINE_THICKNESS 1.0f
-#define CORNER_RADIUS 6.0f
+#define CORNER_RADIUS 12.0f
 
 // Das Panel wird mit Core-Animation-Layern gezeichnet (statt drawRect:), weil
 // drawRect: auf neueren macOS-Versionen bei layer-backed, transparenten Panels
@@ -111,15 +111,13 @@
     CGMutablePathRef path = CGPathCreateMutable();
     CGPathMoveToPoint(path, NULL, ax, maxY);
     CGPathAddLineToPoint(path, NULL, ax + ARROW_WIDTH / 2, maxY - ARROW_HEIGHT);
-    CGPathAddLineToPoint(path, NULL, maxX - r, maxY - ARROW_HEIGHT);
-    CGPathAddQuadCurveToPoint(path, NULL, maxX, maxY - ARROW_HEIGHT, maxX, maxY - ARROW_HEIGHT - r);
-    CGPathAddLineToPoint(path, NULL, maxX, minY + r);
-    CGPathAddQuadCurveToPoint(path, NULL, maxX, minY, maxX - r, minY);
-    CGPathAddLineToPoint(path, NULL, minX + r, minY);
-    CGPathAddQuadCurveToPoint(path, NULL, minX, minY, minX, minY + r);
-    CGPathAddLineToPoint(path, NULL, minX, maxY - ARROW_HEIGHT - r);
-    CGPathAddQuadCurveToPoint(path, NULL, minX, maxY - ARROW_HEIGHT, minX + r, maxY - ARROW_HEIGHT);
-    CGPathAddLineToPoint(path, NULL, ax - ARROW_WIDTH / 2, maxY - ARROW_HEIGHT);
+    // Ecken als echte Kreisbogen mit Radius r
+    CGFloat top = maxY - ARROW_HEIGHT;
+    CGPathAddArcToPoint(path, NULL, maxX, top, maxX, top - r, r);
+    CGPathAddArcToPoint(path, NULL, maxX, minY, maxX - r, minY, r);
+    CGPathAddArcToPoint(path, NULL, minX, minY, minX, minY + r, r);
+    CGPathAddArcToPoint(path, NULL, minX, top, minX + r, top, r);
+    CGPathAddLineToPoint(path, NULL, ax - ARROW_WIDTH / 2, top);
     CGPathCloseSubpath(path);
     
     CGRect full = CGRectMake(0, 0, w, h);

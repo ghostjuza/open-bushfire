@@ -1,10 +1,11 @@
 # Release Notes
 
-### Build 2026.150 (2026-11-16)
+### Build 2026.155 (2026-11-16)
 `new` 'Panel animation' option in settings  
 `new` Panel opens with a smooth zoom from the menu bar icon and badges grow in  
 `new` Panel flips around its vertical axis when switching between the main page and settings  
 `new` 'Overwrite Files' is greyed out with a 'FileVault active' note when FileVault is on  
+`change` Panel has rounder corners (12 px)  
 
 ---
 
