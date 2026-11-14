@@ -289,6 +289,8 @@ static void bfClosePopWindow(void)
 @property (nonatomic, retain) NSButton *a_btnUpdateCheck;
 @property (nonatomic, retain) NSButton *a_chkStartup;
 @property (nonatomic, retain) NSButton *a_btnCleanSecureActive;
+@property (nonatomic, retain) NSTextField *a_secureHint;
+- (void)applyFileVaultState;
 @property (nonatomic, retain) NSButton *a_btnLogEnabled;
 @property (nonatomic, retain) NSButton *a_btnPanelAnimation;
 @property (nonatomic, retain) NSTextField *TfDataCountSize;
@@ -334,6 +336,7 @@ static void bfClosePopWindow(void)
 @synthesize a_btnBurnNow            = _a_btnBurnNow;
 @synthesize a_btnCleanActive        = _a_btnCleanActive;
 @synthesize a_btnCleanSecureActive  = _a_btnCleanSecureActive;
+@synthesize a_secureHint            = _a_secureHint;
 @synthesize a_btnLogEnabled         = _a_btnLogEnabled;
 @synthesize a_btnPanelAnimation     = _a_btnPanelAnimation;
 @synthesize a_btnSettingsAbout      = _a_btnSettingsAbout;
@@ -415,6 +418,7 @@ static NSUInteger bfPanelResizeId = 0;
     [_a_btnBurnNow release];
     [_a_btnCleanActive release];
     [_a_btnCleanSecureActive release];
+    [_a_secureHint release];
     [_a_btnLogEnabled release];
     [_a_btnPanelAnimation release];
     [_a_btnSettingsAbout release];
@@ -677,7 +681,6 @@ static NSUInteger bfPanelResizeId = 0;
     self.a_btnCleanSecureActive = [self checkboxWithFrame:NSMakeRect(12, 53, 200, 18) title:NSLocalizedString(@"clean_secure_active", nil) bold:NO action:@selector(actionCleanSecureActive:)];
     [self.a_btnCleanSecureActive setState:self.a_settings.CleanSecureActive];
     [self.a_btnCleanSecureActive setFrameSize:NSMakeSize(PANEL_WIDTH - 80, 18)];   // Platz fuer den laengeren Titel, endet vor "Log"
-    [self.a_btnCleanSecureActive setToolTip:NSLocalizedString(@"clean_secure_tooltip", nil)];
     [settingsView addSubview:self.a_btnCleanSecureActive];
     
     // Hinweis unter der Checkbox (sichtbar, kein Tooltip noetig)
@@ -692,6 +695,8 @@ static NSUInteger bfPanelResizeId = 0;
     [secureHint setTextColor:[NSColor colorWithCalibratedWhite:1.0 alpha:0.55]];
     [secureHint setStringValue:NSLocalizedString(@"clean_secure_hint", nil)];
     [settingsView addSubview:secureHint];
+    self.a_secureHint = secureHint;
+    [self applyFileVaultState];
     
     self.a_btnLogEnabled = [self checkboxWithFrame:NSMakeRect(PANEL_WIDTH - 62, 53, 50, 18) title:NSLocalizedString(@"log_enabled", nil) bold:NO action:@selector(actionLogEnable:)];
     [self.a_btnLogEnabled setState:self.a_settings.LogEnabled];
@@ -909,6 +914,7 @@ static NSUInteger bfPanelResizeId = 0;
         panelRect.origin.x -= NSMaxX(panelRect) - (NSMaxX(screenRect) - ARROW_HEIGHT);
     }
     
+    [self applyFileVaultState];
     [NSApp activateIgnoringOtherApps:NO];
     [panel setAlphaValue:0];
     [self updateArrowForPanelRect:panelRect statusRect:statusRect];
@@ -1459,6 +1465,22 @@ static NSUInteger bfPanelResizeId = 0;
  toggle global settings sweep
  @param sender of nsbutton
  */
+/**
+ Mit aktivem FileVault: Checkbox und Hinweis ausgegraut, Hinweistext "FileVault aktiv".
+ Der gespeicherte Wert bleibt unveraendert (gilt wieder, sobald FileVault aus ist).
+ */
+- (void)applyFileVaultState
+{
+    BOOL vault = [Helper isFileVaultActive];
+    
+    [self.a_btnCleanSecureActive setEnabled:!vault];
+    [self.a_btnCleanSecureActive setState:(vault ? NSControlStateValueOff : self.a_settings.CleanSecureActive)];
+    [self.a_btnCleanSecureActive setTextColor:[NSColor colorWithCalibratedWhite:1.0 alpha:(vault ? 0.4 : 1.0)]];
+    [self.a_secureHint setStringValue:NSLocalizedString((vault ? @"clean_secure_hint_filevault" : @"clean_secure_hint"), nil)];
+    [self.a_secureHint setTextColor:[NSColor colorWithCalibratedWhite:1.0 alpha:(vault ? 0.35 : 0.55)]];
+}
+
+
 - (IBAction)actionCleanSecureActive:(id)sender
 {
     self.a_settings.CleanSecureActive = !self.a_settings.CleanSecureActive;

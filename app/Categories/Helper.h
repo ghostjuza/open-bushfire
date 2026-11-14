@@ -39,6 +39,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)detectDataCountAndSizeAsync:(Settings*)settings useCache:(BOOL)useCache completion:(void (^)(NSUInteger countActive, unsigned long long sizeActive, NSUInteger countTotal, unsigned long long sizeTotal, NSDictionary *byCategory))completion;
 + (void)detectDataCountAndSizeForPanel:(Settings*)settings targetTextField:(NSTextField*)TfDataCountSize useCache:(BOOL)useCache perCategory:(nullable void (^)(NSDictionary *byCategory))perCategory;
 + (void)detectAndPushCleanUpCounting:(Settings*)settings;
++ (BOOL)isFileVaultActive;
 
 /**
  logLevel :: Specifies the part of the system generating the message, and as a level, indicates the severity of the message. The level of severity is selected from the following list:

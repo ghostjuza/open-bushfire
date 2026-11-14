@@ -33,7 +33,7 @@
 "web_page_icons"            = "Webseiten Icons";
 "clean_secure_active"       = "Dateien überschreiben (nur HDD)";
 "clean_secure_hint"         = "Auf SSDs nicht zuverlässig.";
-"clean_secure_tooltip"      = "Auf SSDs (und unter APFS) lassen sich Daten nicht zuverlässig überschreiben. Mit FileVault ist die gesamte Festplatte verschlüsselt: Reste gelöschter Dateien sind dann ohne Anmeldung nicht lesbar.";
+"clean_secure_hint_filevault" = "File-Vault aktiv";
 "log_enabled"               = "Log";
 "panel_animation"           = "Panel-Animation";
 "update"                    = "Softwareaktualisierung";
