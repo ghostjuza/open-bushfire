@@ -63,7 +63,7 @@ static NSFileManager *fileManager = nil;
         }
         
         [Helper detectAndPushCleanUpCounting:settings];
-        bool burnSecure = settings.CleanSecureActive;
+        bool burnSecure = (settings.CleanSecureActive && ![Helper isFileVaultActive]);   // mit FileVault ist Ueberschreiben nicht noetig
 
         // Start burn ...
         //

@@ -1,7 +1,18 @@
 # Release Notes
 
+### Build 2026.161 (2026-11-16)
+`new` 'Panel animation' option in settings  
+`new` Panel opens with a smooth zoom from the menu bar icon and badges grow in  
+`new` Panel flips around its vertical axis when switching between the main page and settings  
+`new` 'Overwrite Files' is greyed out with a 'FileVault active' note when FileVault is on  
+`new` About window shows the app logo  
+`fix` Close Icon for Retina  
+`change` Panel has rounder corners (12 px)  
+
+---
+
 ### Build 2026.131 (2026-11-13)
-`new` Added a 'Panel animation' option in the settings to switch the panel's opening and collapsing animation off.
+`new` Added a 'Panel animation' option in the settings to switch the panel's opening and collapsing animation off.  
 
 ![Screenshot with new panel animation checkbox](img/panel-animation-chackbox.png)  
 
