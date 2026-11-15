@@ -664,6 +664,29 @@ static NSFileManager *fileManager = nil;
 }
 
 
+/**
+ YES, wenn FileVault aktiv ist (fdesetup status, ohne Admin-Rechte). Ergebnis wird 60 s zwischengespeichert.
+ Bei Fehler oder unklarer Ausgabe: NO (Verhalten wie bisher).
+ */
++ (BOOL)isFileVaultActive
+{
+    static BOOL cached = NO;
+    static NSDate *cachedAt = nil;
+    
+    @synchronized (self) {
+        if (cachedAt != nil && -[cachedAt timeIntervalSinceNow] < 60.0) {
+            return cached;
+        }
+        
+        NSString *out = [Helper runCommand:@"/usr/bin/fdesetup status 2>/dev/null"];
+        cached = ([out rangeOfString:@"FileVault is On"].location != NSNotFound);
+        [cachedAt release];
+        cachedAt = [[NSDate date] retain];
+        return cached;
+    }
+}
+
+
 + (NSString *)generateUuidString
 {
     CFUUIDRef uuid = CFUUIDCreate(kCFAllocatorDefault);

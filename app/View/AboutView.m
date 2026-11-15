@@ -1,6 +1,6 @@
 #import "AboutView.h"
 
-#define CORNER_RADIUS 6.0f
+#define CORNER_RADIUS 12.0f
 
 
 @interface AboutView () {
@@ -43,9 +43,11 @@
   
     CGFloat colorLocations[5];
     colorLocations[0]= 0.0;
-    colorLocations[1]= 0.25;
-    colorLocations[2]= 0.85;
-    colorLocations[3]= 0.85;
+    // feste Abstaende (oberer Auslauf 59 pt, Fusszeile 36 pt), unabhaengig von der Fensterhoehe
+    CGFloat viewHeight = MAX(NSHeight([self bounds]), 100.0);
+    colorLocations[1]= 59.0 / viewHeight;
+    colorLocations[2]= 1.0 - 36.0 / viewHeight;
+    colorLocations[3]= 1.0 - 36.0 / viewHeight;
     colorLocations[4]= 1.0;
     
     NSGradient *fillGradient = [[NSGradient alloc] initWithColors:
@@ -60,35 +62,7 @@
                                                        colorSpace:[NSColorSpace deviceRGBColorSpace]];
     
     NSRect contentRect = NSInsetRect([self bounds], 1.0, 1.0);
-    NSBezierPath *path = [NSBezierPath bezierPath];
-    
-    [path moveToPoint:NSMakePoint(0, NSMaxY(contentRect))];
-    [path lineToPoint:NSMakePoint(0, NSMaxY(contentRect))];
-    [path lineToPoint:NSMakePoint(NSMaxX(contentRect) - CORNER_RADIUS, NSMaxY(contentRect))];
-    
-    NSPoint topRightCorner = NSMakePoint(NSMaxX(contentRect), NSMaxY(contentRect));
-    [path curveToPoint:NSMakePoint(NSMaxX(contentRect), NSMaxY(contentRect) - CORNER_RADIUS)
-         controlPoint1:topRightCorner controlPoint2:topRightCorner];
-    
-    [path lineToPoint:NSMakePoint(NSMaxX(contentRect), NSMinY(contentRect) + CORNER_RADIUS)];
-    
-    NSPoint bottomRightCorner = NSMakePoint(NSMaxX(contentRect), NSMinY(contentRect));
-    [path curveToPoint:NSMakePoint(NSMaxX(contentRect) - CORNER_RADIUS, NSMinY(contentRect))
-         controlPoint1:bottomRightCorner controlPoint2:bottomRightCorner];
-    
-    [path lineToPoint:NSMakePoint(NSMinX(contentRect) + CORNER_RADIUS, NSMinY(contentRect))];
-    
-    [path curveToPoint:NSMakePoint(NSMinX(contentRect), NSMinY(contentRect) + CORNER_RADIUS)
-         controlPoint1:contentRect.origin controlPoint2:contentRect.origin];
-    
-    [path lineToPoint:NSMakePoint(NSMinX(contentRect), NSMaxY(contentRect) - CORNER_RADIUS)];
-    
-    NSPoint topLeftCorner = NSMakePoint(NSMinX(contentRect), NSMaxY(contentRect));
-    [path curveToPoint:NSMakePoint(NSMinX(contentRect) + CORNER_RADIUS, NSMaxY(contentRect))
-         controlPoint1:topLeftCorner controlPoint2:topLeftCorner];
-    
-    [path lineToPoint:NSMakePoint(0, NSMaxY(contentRect))];
-    [path closePath];
+    NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:contentRect xRadius:CORNER_RADIUS yRadius:CORNER_RADIUS];
     
     [NSGraphicsContext saveGraphicsState];
     

@@ -5,4 +5,6 @@
 
 @property (nonatomic, assign) NSInteger arrowX;
 
+- (void)renderBackgroundInContext:(CGContextRef)ctx;   // nur Hintergrund-Layer (Verlauf, Rahmen, Linien) fuer Standbilder
+
 @end
